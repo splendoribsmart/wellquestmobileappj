@@ -2,7 +2,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { useTheme } from '@theme/index';
 import { getThemeColors } from '@utils/themeHelpers';
-import { TopBar } from '@/src/components/layout/TopBar';
+import { TopBar } from '@components/layout/TopBar';
 
 export default function PatientDetailScreen() {
   const { theme } = useTheme();

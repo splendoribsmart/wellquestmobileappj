@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet } from 'react-native';
 import { useTheme } from '@theme/index';
 import { getThemeColors } from '@utils/themeHelpers';
-import { TopBar } from '@/src/components/layout/TopBar';
+import { TopBar } from '@components/layout/TopBar';
 
 export default function NotificationsScreen() {
   const { theme } = useTheme();
