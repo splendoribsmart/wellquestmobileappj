@@ -3,12 +3,14 @@ import { useTheme } from '@theme/index';
 import { getThemeColors } from '@utils/themeHelpers';
 import { TopBar } from '@components/layout/TopBar';
 import { DrawerActions } from '@react-navigation/native';
-import { useNavigation } from 'expo-router';
+import { useNavigation, useRouter } from 'expo-router';
+import { Button } from '@components/ui';
 
 export default function PatientDashboardScreen() {
   const { theme } = useTheme();
   const colors = getThemeColors(theme);
   const navigation = useNavigation();
+  const router = useRouter();
 
   const handleMenuPress = () => {
     navigation.dispatch(DrawerActions.openDrawer());
@@ -27,6 +29,13 @@ export default function PatientDashboardScreen() {
         <Text style={[styles.description, { color: colors.textSecondary }]}>
           Placeholder screen for patient dashboard
         </Text>
+        <View style={{ marginTop: 24, width: '100%', maxWidth: 400 }}>
+          <Button
+            onPress={() => router.push('/(shared)/ui-demo')}
+            variant="primary"
+            title="View UI Components"
+          />
+        </View>
       </View>
     </View>
   );
