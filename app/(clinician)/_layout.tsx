@@ -87,7 +87,7 @@ export default function ClinicianLayout() {
           }}
         />
         <Drawer.Screen
-          name="/(shared)/settings"
+          name="settings"
           options={{
             drawerLabel: 'Settings',
             drawerIcon: ({ color, size }) => <Settings size={size} color={color} />,
