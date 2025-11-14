@@ -4,7 +4,7 @@ export default function SharedLayout() {
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="notifications" />
-      <Stack.Screen name="settings" />
+      <Stack.Screen name="ui-demo" />
     </Stack>
   );
 }
