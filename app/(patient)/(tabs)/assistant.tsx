@@ -253,18 +253,19 @@ export default function AssistantScreen() {
               onSubmitEditing={handleSendMessage}
             />
           </View>
-          <View style={styles.sendButtonWrapper}>
-            <Button
-              onPress={handleSendMessage}
-              disabled={!inputMessage.trim()}
-              variant="primary"
-              size="md"
-              accessibilityLabel="Send message"
-              rightIcon={<Send size={20} color={colors.onPrimary} />}
-            >
-              {''}
-            </Button>
-          </View>
+          <TouchableOpacity
+            style={[
+              styles.sendButton,
+              {
+                backgroundColor: inputMessage.trim() ? colors.primary : colors.border,
+              },
+            ]}
+            onPress={handleSendMessage}
+            disabled={!inputMessage.trim()}
+            activeOpacity={0.7}
+          >
+            <Send size={20} color={inputMessage.trim() ? colors.onPrimary : colors.textSecondary} />
+          </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
     </View>
@@ -346,8 +347,12 @@ const styles = StyleSheet.create({
   inputWrapper: {
     flex: 1,
   },
-  sendButtonWrapper: {
-    justifyContent: 'flex-end',
-    paddingBottom: 4,
+  sendButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    alignSelf: 'flex-end',
   },
 });
