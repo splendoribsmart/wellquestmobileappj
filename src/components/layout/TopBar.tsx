@@ -1,6 +1,6 @@
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Bell, Settings, Menu, ChevronLeft } from 'lucide-react-native';
+import { Bell, Menu, ChevronLeft } from 'lucide-react-native';
 import { useTheme } from '@theme/index';
 import { getThemeColors } from '@utils/themeHelpers';
 
@@ -19,9 +19,6 @@ export function TopBar({ title, showBack = false, onMenuPress }: TopBarProps) {
     router.push('/(shared)/notifications');
   };
 
-  const handleSettings = () => {
-    router.push('/(shared)/settings');
-  };
 
   const handleBack = () => {
     router.back();
@@ -76,14 +73,6 @@ export function TopBar({ title, showBack = false, onMenuPress }: TopBarProps) {
           accessibilityRole="button"
         >
           <Bell size={24} color={colors.text} />
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={handleSettings}
-          style={styles.iconButton}
-          accessibilityLabel="Settings"
-          accessibilityRole="button"
-        >
-          <Settings size={24} color={colors.text} />
         </TouchableOpacity>
       </View>
     </View>

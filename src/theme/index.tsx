@@ -29,7 +29,7 @@ interface ThemeProviderProps {
 export function ThemeProvider({ children }: ThemeProviderProps) {
   const systemColorScheme = useColorScheme();
   const [manualMode, setManualMode] = useState<ThemeMode | null>(null);
-  const [isSystemMode, setIsSystemMode] = useState(true);
+  const [isSystemMode, setIsSystemMode] = useState(false);
 
   const [fontsLoaded, fontError] = useFonts({
     Inter_400Regular,

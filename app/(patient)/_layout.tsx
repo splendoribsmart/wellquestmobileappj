@@ -9,6 +9,7 @@ import {
   FileText,
   Heart,
   Radio,
+  Settings,
 } from 'lucide-react-native';
 
 export default function PatientLayout() {
@@ -55,6 +56,13 @@ export default function PatientLayout() {
           options={{
             drawerLabel: 'Legal',
             drawerIcon: ({ color, size }) => <Shield size={size} color={color} />,
+          }}
+        />
+        <Drawer.Screen
+          name="settings"
+          options={{
+            drawerLabel: 'Settings',
+            drawerIcon: ({ color, size }) => <Settings size={size} color={color} />,
           }}
         />
       </Drawer>
