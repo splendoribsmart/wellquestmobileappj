@@ -1,14 +1,44 @@
-import {
-  mockCategories,
-  mockContentTypes,
-  mockEducationalContent,
-  mockBookmarks,
-  Category,
-  ContentType,
-  EducationalContent,
-} from '@mocks/healthLibraryData';
+import { supabase } from '@/src/lib/supabase';
+import { logger } from '@utils/logger';
 
-export type { Category, ContentType, EducationalContent };
+export interface Category {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  icon_name: string;
+  color: string;
+  sort_order: number;
+}
+
+export interface ContentType {
+  id: string;
+  name: string;
+  slug: string;
+  icon_name: string;
+  color: string;
+  sort_order: number;
+}
+
+export interface EducationalContent {
+  id: string;
+  title: string;
+  description: string;
+  full_content: string | null;
+  category_id: string | null;
+  content_type_id: string | null;
+  difficulty: 'beginner' | 'intermediate' | 'advanced';
+  author: string;
+  published_date: string;
+  read_time_minutes: number | null;
+  duration_minutes: number | null;
+  views: number;
+  rating: number;
+  categories?: Category;
+  content_types?: ContentType;
+  tags?: Array<{ tag: string }>;
+  is_bookmarked?: boolean;
+}
 
 export interface ContentFilters {
   searchTerm?: string;
@@ -18,120 +48,258 @@ export interface ContentFilters {
   showBookmarkedOnly?: boolean;
 }
 
-const contentViews: Record<string, number> = {};
-
 export const contentService = {
   async getCategories(): Promise<Category[]> {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve([...mockCategories]);
-      }, 100);
-    });
+    try {
+      const { data, error } = await supabase
+        .from('content_categories')
+        .select('*')
+        .eq('is_active', true)
+        .order('sort_order', { ascending: true });
+
+      if (error) {
+        logger.error('Error fetching categories', { error });
+        throw error;
+      }
+
+      return data || [];
+    } catch (error) {
+      logger.error('Failed to get categories', { error });
+      return [];
+    }
   },
 
   async getContentTypes(): Promise<ContentType[]> {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve([...mockContentTypes]);
-      }, 100);
-    });
+    try {
+      const { data, error } = await supabase
+        .from('content_types')
+        .select('*')
+        .eq('is_active', true)
+        .order('sort_order', { ascending: true });
+
+      if (error) {
+        logger.error('Error fetching content types', { error });
+        throw error;
+      }
+
+      return data || [];
+    } catch (error) {
+      logger.error('Failed to get content types', { error });
+      return [];
+    }
   },
 
   async getContent(filters: ContentFilters = {}): Promise<EducationalContent[]> {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        let content = mockEducationalContent.map((item) => ({
-          ...item,
-          categories: mockCategories.find((cat) => cat.id === item.category_id),
-          content_types: mockContentTypes.find((type) => type.id === item.content_type_id),
-          is_bookmarked: mockBookmarks.has(item.id),
-          views: contentViews[item.id] || item.views,
-        }));
+    try {
+      let query = supabase
+        .from('educational_content')
+        .select(
+          `
+          *,
+          categories:content_categories(*),
+          content_types(*)
+        `
+        )
+        .eq('is_published', true);
 
-        if (filters.categoryId && filters.categoryId !== 'all') {
-          content = content.filter((item) => item.category_id === filters.categoryId);
+      if (filters.categoryId && filters.categoryId !== 'all') {
+        query = query.eq('category_id', filters.categoryId);
+      }
+
+      if (filters.contentTypeId && filters.contentTypeId !== 'all') {
+        query = query.eq('content_type_id', filters.contentTypeId);
+      }
+
+      if (filters.difficulty && filters.difficulty !== 'all') {
+        query = query.eq('difficulty', filters.difficulty);
+      }
+
+      if (filters.searchTerm) {
+        query = query.or(
+          `title.ilike.%${filters.searchTerm}%,description.ilike.%${filters.searchTerm}%`
+        );
+      }
+
+      query = query.order('published_date', { ascending: false });
+
+      const { data: content, error } = await query;
+
+      if (error) {
+        logger.error('Error fetching content', { error });
+        throw error;
+      }
+
+      if (!content) return [];
+
+      const contentIds = content.map((item) => item.id);
+
+      const { data: tagsData } = await supabase
+        .from('educational_content_tags')
+        .select('content_id, tag')
+        .in('content_id', contentIds);
+
+      const tagsByContent: Record<string, Array<{ tag: string }>> = {};
+      tagsData?.forEach((tagItem) => {
+        if (!tagsByContent[tagItem.content_id]) {
+          tagsByContent[tagItem.content_id] = [];
         }
+        tagsByContent[tagItem.content_id].push({ tag: tagItem.tag });
+      });
 
-        if (filters.contentTypeId && filters.contentTypeId !== 'all') {
-          content = content.filter((item) => item.content_type_id === filters.contentTypeId);
-        }
+      const enrichedContent = content.map((item) => ({
+        ...item,
+        tags: tagsByContent[item.id] || [],
+        is_bookmarked: false,
+      }));
 
-        if (filters.difficulty && filters.difficulty !== 'all') {
-          content = content.filter((item) => item.difficulty === filters.difficulty);
-        }
+      if (filters.searchTerm) {
+        const searchLower = filters.searchTerm.toLowerCase();
+        return enrichedContent.filter(
+          (item) =>
+            item.title.toLowerCase().includes(searchLower) ||
+            item.description.toLowerCase().includes(searchLower) ||
+            item.tags?.some((t: { tag: string }) => t.tag.toLowerCase().includes(searchLower))
+        );
+      }
 
-        if (filters.searchTerm) {
-          const searchLower = filters.searchTerm.toLowerCase();
-          content = content.filter(
-            (item) =>
-              item.title.toLowerCase().includes(searchLower) ||
-              item.description.toLowerCase().includes(searchLower) ||
-              item.tags?.some((t: { tag: string }) => t.tag.toLowerCase().includes(searchLower))
-          );
-        }
-
-        resolve(content as EducationalContent[]);
-      }, 150);
-    });
+      return enrichedContent;
+    } catch (error) {
+      logger.error('Failed to get content', { error });
+      return [];
+    }
   },
 
   async getCategoryCounts(): Promise<Record<string, number>> {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const counts: Record<string, number> = {};
-        mockEducationalContent.forEach((item) => {
-          if (item.category_id) {
-            counts[item.category_id] = (counts[item.category_id] || 0) + 1;
-          }
-        });
-        resolve(counts);
-      }, 100);
-    });
+    try {
+      const { data, error } = await supabase
+        .from('educational_content')
+        .select('category_id')
+        .eq('is_published', true);
+
+      if (error) {
+        logger.error('Error fetching category counts', { error });
+        throw error;
+      }
+
+      const counts: Record<string, number> = {};
+      data?.forEach((item) => {
+        if (item.category_id) {
+          counts[item.category_id] = (counts[item.category_id] || 0) + 1;
+        }
+      });
+
+      return counts;
+    } catch (error) {
+      logger.error('Failed to get category counts', { error });
+      return {};
+    }
   },
 
   async getContentTypeCounts(): Promise<Record<string, number>> {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const counts: Record<string, number> = {};
-        mockEducationalContent.forEach((item) => {
-          if (item.content_type_id) {
-            counts[item.content_type_id] = (counts[item.content_type_id] || 0) + 1;
-          }
-        });
-        resolve(counts);
-      }, 100);
-    });
+    try {
+      const { data, error } = await supabase
+        .from('educational_content')
+        .select('content_type_id')
+        .eq('is_published', true);
+
+      if (error) {
+        logger.error('Error fetching content type counts', { error });
+        throw error;
+      }
+
+      const counts: Record<string, number> = {};
+      data?.forEach((item) => {
+        if (item.content_type_id) {
+          counts[item.content_type_id] = (counts[item.content_type_id] || 0) + 1;
+        }
+      });
+
+      return counts;
+    } catch (error) {
+      logger.error('Failed to get content type counts', { error });
+      return {};
+    }
   },
 
   async getUserBookmarks(userId: string): Promise<string[]> {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve(Array.from(mockBookmarks));
-      }, 100);
-    });
+    try {
+      const { data, error } = await supabase
+        .from('user_bookmarks')
+        .select('content_id')
+        .eq('user_id', userId);
+
+      if (error) {
+        logger.error('Error fetching user bookmarks', { error });
+        throw error;
+      }
+
+      return data?.map((item) => item.content_id) || [];
+    } catch (error) {
+      logger.error('Failed to get user bookmarks', { error });
+      return [];
+    }
   },
 
   async toggleBookmark(userId: string, contentId: string): Promise<boolean> {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        if (mockBookmarks.has(contentId)) {
-          mockBookmarks.delete(contentId);
-        } else {
-          mockBookmarks.add(contentId);
+    try {
+      const { data: existing } = await supabase
+        .from('user_bookmarks')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('content_id', contentId)
+        .maybeSingle();
+
+      if (existing) {
+        const { error } = await supabase
+          .from('user_bookmarks')
+          .delete()
+          .eq('id', existing.id);
+
+        if (error) {
+          logger.error('Error removing bookmark', { error });
+          throw error;
         }
-        resolve(true);
-      }, 100);
-    });
+
+        return false;
+      } else {
+        const { error } = await supabase.from('user_bookmarks').insert({
+          user_id: userId,
+          content_id: contentId,
+        });
+
+        if (error) {
+          logger.error('Error adding bookmark', { error });
+          throw error;
+        }
+
+        return true;
+      }
+    } catch (error) {
+      logger.error('Failed to toggle bookmark', { error });
+      return false;
+    }
   },
 
   async incrementViews(contentId: string): Promise<void> {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const currentViews = contentViews[contentId] ||
-          mockEducationalContent.find(item => item.id === contentId)?.views || 0;
-        contentViews[contentId] = currentViews + 1;
-        resolve();
-      }, 50);
-    });
+    try {
+      const { data: content } = await supabase
+        .from('educational_content')
+        .select('views')
+        .eq('id', contentId)
+        .maybeSingle();
+
+      if (content) {
+        const { error } = await supabase
+          .from('educational_content')
+          .update({ views: content.views + 1 })
+          .eq('id', contentId);
+
+        if (error) {
+          logger.error('Error incrementing views', { error });
+        }
+      }
+    } catch (error) {
+      logger.error('Failed to increment views', { error });
+    }
   },
 };
