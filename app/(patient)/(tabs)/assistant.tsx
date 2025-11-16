@@ -2,7 +2,6 @@ import {
   View,
   Text,
   StyleSheet,
-  TextInput,
   ScrollView,
   TouchableOpacity,
   KeyboardAvoidingView,
@@ -12,7 +11,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useTheme } from '@theme/index';
 import { getThemeColors } from '@utils/themeHelpers';
 import { TopBar } from '@components/layout/TopBar';
-import { Button } from '@components/ui';
+import { Button, Input, Avatar, Badge } from '@components/ui';
 import { DrawerActions } from '@react-navigation/native';
 import { useNavigation } from 'expo-router';
 import { Send } from 'lucide-react-native';
@@ -158,32 +157,48 @@ export default function AssistantScreen() {
                   message.sender === 'user' ? styles.userMessageWrapper : styles.botMessageWrapper,
                 ]}
               >
-                <View
-                  style={[
-                    styles.messageBubble,
-                    message.sender === 'user'
-                      ? { backgroundColor: colors.primary }
-                      : { backgroundColor: theme.colors.surface.alt, borderColor: colors.border },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.messageText,
-                      { color: message.sender === 'user' ? colors.onPrimary : colors.text },
-                    ]}
-                  >
-                    {message.content}
-                  </Text>
+                <View style={styles.messageRow}>
+                  {message.sender === 'bot' && (
+                    <Avatar
+                      initials="AI"
+                      size="sm"
+                    />
+                  )}
+                  <View style={styles.messageContent}>
+                    <View
+                      style={[
+                        styles.messageBubble,
+                        message.sender === 'user'
+                          ? { backgroundColor: colors.primary }
+                          : { backgroundColor: theme.colors.surface.alt, borderColor: colors.border },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.messageText,
+                          { color: message.sender === 'user' ? colors.onPrimary : colors.text },
+                        ]}
+                      >
+                        {message.content}
+                      </Text>
+                    </View>
+                    <Text
+                      style={[
+                        styles.timestamp,
+                        { color: colors.textSecondary },
+                        message.sender === 'user' ? styles.timestampRight : styles.timestampLeft,
+                      ]}
+                    >
+                      {formatTime(message.timestamp)}
+                    </Text>
+                  </View>
+                  {message.sender === 'user' && (
+                    <Avatar
+                      initials="JD"
+                      size="sm"
+                    />
+                  )}
                 </View>
-                <Text
-                  style={[
-                    styles.timestamp,
-                    { color: colors.textSecondary },
-                    message.sender === 'user' ? styles.timestampRight : styles.timestampLeft,
-                  ]}
-                >
-                  {formatTime(message.timestamp)}
-                </Text>
               </View>
 
               {message.suggestions && message.suggestions.length > 0 && (
@@ -191,12 +206,12 @@ export default function AssistantScreen() {
                   {message.suggestions.map((suggestion, index) => (
                     <TouchableOpacity
                       key={index}
-                      style={[styles.suggestionChip, { borderColor: colors.border }]}
                       onPress={() => handleSuggestionPress(suggestion)}
+                      activeOpacity={0.7}
                     >
-                      <Text style={[styles.suggestionText, { color: colors.primary }]}>
+                      <Badge variant="info" size="md">
                         {suggestion}
-                      </Text>
+                      </Badge>
                     </TouchableOpacity>
                   ))}
                 </View>
@@ -206,38 +221,38 @@ export default function AssistantScreen() {
 
           {isTyping && (
             <View style={styles.botMessageWrapper}>
-              <View
-                style={[
-                  styles.messageBubble,
-                  styles.typingBubble,
-                  { backgroundColor: theme.colors.surface.alt, borderColor: colors.border },
-                ]}
-              >
-                <Text style={[styles.typingText, { color: colors.textSecondary }]}>...</Text>
+              <View style={styles.messageRow}>
+                <Avatar
+                  initials="AI"
+                  size="sm"
+                />
+                <View style={styles.messageContent}>
+                  <View
+                    style={[
+                      styles.messageBubble,
+                      styles.typingBubble,
+                      { backgroundColor: theme.colors.surface.alt, borderColor: colors.border },
+                    ]}
+                  >
+                    <Text style={[styles.typingText, { color: colors.textSecondary }]}>...</Text>
+                  </View>
+                </View>
               </View>
             </View>
           )}
         </ScrollView>
 
         <View style={[styles.inputContainer, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
-          <TextInput
-            style={[
-              styles.input,
-              {
-                backgroundColor: theme.colors.surface.alt,
-                color: colors.text,
-                borderColor: colors.border,
-              },
-            ]}
-            value={inputMessage}
-            onChangeText={setInputMessage}
-            placeholder="Ask a question about your health..."
-            placeholderTextColor={colors.textSecondary}
-            multiline
-            maxLength={500}
-            onSubmitEditing={handleSendMessage}
-            blurOnSubmit={false}
-          />
+          <View style={styles.inputWrapper}>
+            <Input
+              value={inputMessage}
+              onChangeText={setInputMessage}
+              placeholder="Ask a question about your health..."
+              multiline
+              maxLength={500}
+              onSubmitEditing={handleSendMessage}
+            />
+          </View>
           <TouchableOpacity
             style={[
               styles.sendButton,
@@ -247,6 +262,7 @@ export default function AssistantScreen() {
             ]}
             onPress={handleSendMessage}
             disabled={!inputMessage.trim()}
+            activeOpacity={0.7}
           >
             <Send size={20} color={inputMessage.trim() ? colors.onPrimary : colors.textSecondary} />
           </TouchableOpacity>
@@ -279,6 +295,14 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     alignItems: 'flex-start',
   },
+  messageRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 8,
+  },
+  messageContent: {
+    flex: 1,
+  },
   messageBubble: {
     borderRadius: 16,
     padding: 12,
@@ -310,17 +334,8 @@ const styles = StyleSheet.create({
     marginTop: 8,
     marginBottom: 8,
     gap: 8,
-  },
-  suggestionChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 16,
-    borderWidth: 1,
-    alignSelf: 'flex-start',
-  },
-  suggestionText: {
-    fontSize: 14,
-    fontWeight: '500',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
   },
   inputContainer: {
     flexDirection: 'row',
@@ -329,14 +344,8 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     alignItems: 'flex-end',
   },
-  input: {
+  inputWrapper: {
     flex: 1,
-    borderWidth: 1,
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    fontSize: 15,
-    maxHeight: 100,
   },
   sendButton: {
     width: 44,
@@ -344,5 +353,6 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
+    alignSelf: 'flex-end',
   },
 });
