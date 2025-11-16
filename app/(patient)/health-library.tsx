@@ -7,225 +7,109 @@ import {
   TouchableOpacity,
   Modal,
   SafeAreaView,
+  ActivityIndicator,
 } from 'react-native';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTheme } from '@theme/index';
 import { getThemeColors } from '@utils/themeHelpers';
 import { TopBar } from '@components/layout/TopBar';
-import { Card, Badge, Button, Input, Switch, EmptyState } from '@components/ui';
+import { Card, Badge, Button, Input, Switch, EmptyState, FilterChip } from '@components/ui';
 import { useNavigation } from 'expo-router';
 import { DrawerActions } from '@react-navigation/native';
-import { BookOpen, Bookmark, Star, Clock, Eye, X, Play } from 'lucide-react-native';
-import { Picker } from '@react-native-picker/picker';
+import {
+  BookOpen,
+  Bookmark,
+  Star,
+  Clock,
+  Eye,
+  X,
+  Play,
+  FileText,
+  Video as VideoIcon,
+  Image as ImageIcon,
+  Heart,
+  Activity,
+  Apple,
+  Brain,
+  Stethoscope,
+} from 'lucide-react-native';
+import {
+  contentService,
+  EducationalContent,
+  Category,
+  ContentType,
+} from '@services/contentService';
 
-interface EducationalContent {
-  id: string;
-  title: string;
-  description: string;
-  category: string;
-  contentType: 'article' | 'video' | 'guide' | 'infographic';
-  readTime?: number;
-  duration?: number;
-  difficulty: 'beginner' | 'intermediate' | 'advanced';
-  tags: string[];
-  author: string;
-  publishedDate: string;
-  views: number;
-  rating: number;
-  isBookmarked: boolean;
-}
-
-const INITIAL_CONTENT: EducationalContent[] = [
-  {
-    id: '1',
-    title: 'Understanding Your Heart Health',
-    description: 'Learn about cardiovascular health, risk factors, and preventive measures to keep your heart healthy.',
-    category: 'Cardiovascular',
-    contentType: 'article',
-    readTime: 8,
-    difficulty: 'beginner',
-    tags: ['heart', 'prevention', 'lifestyle'],
-    author: 'Dr. Sarah Johnson',
-    publishedDate: '2024-01-15',
-    views: 1523,
-    rating: 4.5,
-    isBookmarked: false,
-  },
-  {
-    id: '2',
-    title: 'Managing Diabetes: A Comprehensive Guide',
-    description: 'Complete guide to understanding diabetes management, blood sugar monitoring, and lifestyle adjustments.',
-    category: 'Endocrine',
-    contentType: 'guide',
-    readTime: 15,
-    difficulty: 'intermediate',
-    tags: ['diabetes', 'blood sugar', 'diet'],
-    author: 'Dr. Michael Chen',
-    publishedDate: '2024-01-20',
-    views: 2341,
-    rating: 4.8,
-    isBookmarked: false,
-  },
-  {
-    id: '3',
-    title: 'Nutrition Basics for Better Health',
-    description: 'Essential nutrition information to help you make informed dietary choices for optimal health.',
-    category: 'Nutrition',
-    contentType: 'article',
-    readTime: 10,
-    difficulty: 'beginner',
-    tags: ['nutrition', 'diet', 'wellness'],
-    author: 'Emily Rodriguez, RD',
-    publishedDate: '2024-01-25',
-    views: 1876,
-    rating: 4.3,
-    isBookmarked: true,
-  },
-  {
-    id: '4',
-    title: 'Understanding Blood Pressure',
-    description: 'Learn what blood pressure numbers mean, how to monitor them, and steps to maintain healthy levels.',
-    category: 'Cardiovascular',
-    contentType: 'video',
-    duration: 12,
-    difficulty: 'beginner',
-    tags: ['blood pressure', 'monitoring', 'hypertension'],
-    author: 'Dr. Lisa Thompson',
-    publishedDate: '2024-02-01',
-    views: 3124,
-    rating: 4.7,
-    isBookmarked: false,
-  },
-  {
-    id: '5',
-    title: 'Medication Management Tips',
-    description: 'Best practices for organizing, tracking, and taking your medications safely and effectively.',
-    category: 'General Health',
-    contentType: 'guide',
-    readTime: 12,
-    difficulty: 'beginner',
-    tags: ['medications', 'safety', 'adherence'],
-    author: 'James Martinez, PharmD',
-    publishedDate: '2024-02-05',
-    views: 2567,
-    rating: 4.6,
-    isBookmarked: true,
-  },
-  {
-    id: '6',
-    title: 'Exercise and Heart Health',
-    description: 'Discover the connection between physical activity and cardiovascular wellness with practical exercise tips.',
-    category: 'Cardiovascular',
-    contentType: 'infographic',
-    readTime: 5,
-    difficulty: 'beginner',
-    tags: ['exercise', 'heart health', 'fitness'],
-    author: 'Dr. Robert Kim',
-    publishedDate: '2024-02-10',
-    views: 1945,
-    rating: 4.4,
-    isBookmarked: false,
-  },
-  {
-    id: '7',
-    title: 'Mental Health and Chronic Illness',
-    description: 'Understanding the emotional impact of chronic conditions and strategies for maintaining mental wellness.',
-    category: 'Mental Health',
-    contentType: 'article',
-    readTime: 14,
-    difficulty: 'intermediate',
-    tags: ['mental health', 'coping', 'support'],
-    author: 'Dr. Amanda Foster',
-    publishedDate: '2024-02-15',
-    views: 2198,
-    rating: 4.9,
-    isBookmarked: false,
-  },
-  {
-    id: '8',
-    title: 'Sleep and Health: The Connection',
-    description: 'Explore how quality sleep affects your overall health and learn techniques for better rest.',
-    category: 'General Health',
-    contentType: 'article',
-    readTime: 9,
-    difficulty: 'beginner',
-    tags: ['sleep', 'rest', 'wellness'],
-    author: 'Dr. Patricia Lee',
-    publishedDate: '2024-02-20',
-    views: 1732,
-    rating: 4.2,
-    isBookmarked: false,
-  },
-];
-
-function getFullContent(id: string): string {
-  const contentMap: Record<string, string> = {
-    '1': `Your heart is one of the most vital organs in your body, working tirelessly to pump blood and deliver oxygen and nutrients throughout your system. Understanding how to maintain cardiovascular health is essential for long-term wellness and quality of life.
-
-Cardiovascular disease remains one of the leading causes of death worldwide, but many risk factors are within your control. By making informed lifestyle choices and understanding your personal risk factors, you can significantly reduce your chances of developing heart-related conditions.
-
-Key risk factors for heart disease include high blood pressure, high cholesterol, smoking, obesity, physical inactivity, and diabetes. Family history and age also play important roles. Regular check-ups with your healthcare provider can help identify these risk factors early.
-
-Maintaining a heart-healthy lifestyle involves several key components. A balanced diet rich in fruits, vegetables, whole grains, and lean proteins supports cardiovascular health. Regular physical activity, aiming for at least 150 minutes of moderate exercise per week, strengthens your heart and improves circulation.
-
-Managing stress through relaxation techniques, adequate sleep, and social connections also benefits your heart. If you have existing risk factors, working closely with your healthcare team to manage conditions like high blood pressure or diabetes is crucial.
-
-Remember, small, consistent changes in your daily habits can have a profound impact on your heart health over time. It's never too early or too late to start taking care of your cardiovascular system.`,
-
-    '2': `Diabetes is a chronic condition that affects how your body processes blood sugar (glucose). Whether you have type 1, type 2, or gestational diabetes, understanding how to manage your condition is essential for maintaining good health and preventing complications.
-
-Blood sugar monitoring is a cornerstone of diabetes management. Regular testing helps you understand how food, physical activity, medications, and stress affect your glucose levels. Your healthcare team will help you determine how often to test and what your target ranges should be.
-
-Nutrition plays a critical role in diabetes management. Working with a registered dietitian can help you create a meal plan that maintains stable blood sugar levels while providing proper nutrition. Understanding carbohydrate counting, portion sizes, and the glycemic index of foods empowers you to make informed choices.
-
-Physical activity helps your body use insulin more effectively and can lower blood sugar levels. Most people with diabetes benefit from at least 150 minutes of moderate-intensity aerobic activity per week, combined with strength training exercises.
-
-Medication management, whether insulin or oral medications, requires careful attention to timing, dosing, and potential interactions. Never adjust your medications without consulting your healthcare provider.
-
-Regular check-ups are essential for monitoring your overall health and screening for potential complications. Your healthcare team will monitor your A1C levels, check for eye problems, assess kidney function, and examine your feet regularly.
-
-Living with diabetes requires daily attention, but with proper management, most people with diabetes can lead full, active lives. Stay connected with your healthcare team, join support groups if helpful, and remember that you're not alone in this journey.`,
-
-    '3': `Good nutrition is foundational to overall health and wellness. What you eat affects everything from your energy levels and immune function to your risk of chronic diseases and mental health. Understanding basic nutrition principles helps you make informed choices that support your health goals.
-
-Macronutrients - carbohydrates, proteins, and fats - provide the energy and building blocks your body needs. Carbohydrates are your body's primary energy source and should come mainly from whole grains, fruits, and vegetables rather than refined sugars. Proteins support tissue repair and immune function, while healthy fats are essential for hormone production and nutrient absorption.
-
-Micronutrients, including vitamins and minerals, support countless bodily functions. A varied diet rich in colorful fruits and vegetables typically provides adequate micronutrients. However, some people may need supplements based on individual needs and deficiencies.
-
-Hydration is often overlooked but crucial for optimal health. Water supports digestion, temperature regulation, nutrient transport, and countless other functions. Most adults need about 8-10 cups of fluids daily, though individual needs vary.
-
-Portion control matters as much as food quality. Even healthy foods can contribute to weight gain if consumed in excess. Learning to recognize appropriate portion sizes and listening to your body's hunger and fullness cues helps maintain a healthy weight.
-
-Meal planning and preparation can make healthy eating more convenient and sustainable. Taking time to plan meals, shop with a list, and prepare healthy options in advance reduces reliance on less nutritious convenience foods.
-
-Remember, healthy eating is about progress, not perfection. Small, sustainable changes to your eating habits are more effective long-term than drastic, restrictive diets.`,
-
-    '4': `In this comprehensive video, you'll learn everything you need to know about blood pressure monitoring and management.
-
-What You'll Learn:
-• Understanding systolic and diastolic numbers
-• How to properly measure blood pressure at home
-• Recognizing signs of high blood pressure
-• Lifestyle changes to maintain healthy levels
-• When to seek medical attention
-
-This educational video provides clear, visual explanations of blood pressure concepts, making it easy to understand and apply to your daily health routine. Perfect for beginners looking to take control of their cardiovascular health.`,
-  };
-
-  return contentMap[id] || `This is the full content for the selected resource. In a real implementation, this would contain comprehensive information about the topic.\n\nThe content would include detailed explanations, practical tips, evidence-based recommendations, and actionable steps you can take to improve your health.\n\nThis placeholder demonstrates how the full article would appear when opened in the modal view. The actual content would be much more extensive and informative, tailored to help you understand and manage your health effectively.\n\nRemember to always consult with your healthcare provider before making significant changes to your health routine or treatment plan.`;
-}
+const ICON_MAP: Record<string, React.ComponentType<any>> = {
+  heart: Heart,
+  activity: Activity,
+  apple: Apple,
+  brain: Brain,
+  'heart-pulse': Stethoscope,
+  'file-text': FileText,
+  video: VideoIcon,
+  'book-open': BookOpen,
+  image: ImageIcon,
+};
 
 export default function HealthLibraryScreen() {
   const { theme } = useTheme();
   const colors = getThemeColors(theme);
   const navigation = useNavigation();
 
-  const [content, setContent] = useState<EducationalContent[]>(INITIAL_CONTENT);
+  const [content, setContent] = useState<EducationalContent[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [contentTypes, setContentTypes] = useState<ContentType[]>([]);
+  const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({});
+  const [typeCounts, setTypeCounts] = useState<Record<string, number>>({});
+  const [loading, setLoading] = useState(true);
+
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('all');
-  const [selectedContentType, setSelectedContentType] = useState('all');
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>('all');
+  const [selectedContentTypeId, setSelectedContentTypeId] = useState<string>('all');
   const [showBookmarkedOnly, setShowBookmarkedOnly] = useState(false);
   const [selectedContent, setSelectedContent] = useState<EducationalContent | null>(null);
+  const [showFilters, setShowFilters] = useState(true);
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  useEffect(() => {
+    filterContent();
+  }, [searchTerm, selectedCategoryId, selectedContentTypeId]);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const [categoriesData, typesData, contentData, catCounts, typeCounts] = await Promise.all([
+        contentService.getCategories(),
+        contentService.getContentTypes(),
+        contentService.getContent(),
+        contentService.getCategoryCounts(),
+        contentService.getContentTypeCounts(),
+      ]);
+
+      setCategories(categoriesData);
+      setContentTypes(typesData);
+      setContent(contentData);
+      setCategoryCounts(catCounts);
+      setTypeCounts(typeCounts);
+    } catch (error) {
+      console.error('Error loading data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filterContent = async () => {
+    const filtered = await contentService.getContent({
+      searchTerm,
+      categoryId: selectedCategoryId,
+      contentTypeId: selectedContentTypeId,
+    });
+    setContent(filtered);
+  };
 
   const handleMenuPress = () => {
     navigation.dispatch(DrawerActions.openDrawer());
@@ -234,34 +118,21 @@ export default function HealthLibraryScreen() {
   const toggleBookmark = (id: string) => {
     setContent((prev) =>
       prev.map((item) =>
-        item.id === id ? { ...item, isBookmarked: !item.isBookmarked } : item
+        item.id === id ? { ...item, is_bookmarked: !item.is_bookmarked } : item
       )
     );
   };
 
   const resetFilters = () => {
     setSearchTerm('');
-    setSelectedCategory('all');
-    setSelectedContentType('all');
+    setSelectedCategoryId('all');
+    setSelectedContentTypeId('all');
     setShowBookmarkedOnly(false);
   };
 
-  const filteredContent = content.filter((item) => {
-    const matchesSearch =
-      searchTerm === '' ||
-      item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.tags.some((tag) => tag.toLowerCase().includes(searchTerm.toLowerCase()));
-
-    const matchesCategory = selectedCategory === 'all' || item.category === selectedCategory;
-    const matchesContentType = selectedContentType === 'all' || item.contentType === selectedContentType;
-    const matchesBookmark = !showBookmarkedOnly || item.isBookmarked;
-
-    return matchesSearch && matchesCategory && matchesContentType && matchesBookmark;
-  });
-
-  const categories = ['all', ...Array.from(new Set(content.map((item) => item.category)))];
-  const contentTypes = ['all', 'article', 'video', 'guide', 'infographic'];
+  const filteredContent = showBookmarkedOnly
+    ? content.filter((item) => item.is_bookmarked)
+    : content;
 
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
@@ -276,32 +147,48 @@ export default function HealthLibraryScreen() {
     }
   };
 
-  const getTypeVariant = (contentType: string): 'primary' | 'secondary' | 'success' | 'warning' | 'danger' | 'info' | 'neutral' => {
+  const getTypeVariant = (
+    contentType: string
+  ): 'primary' | 'secondary' | 'success' | 'warning' | 'danger' | 'info' | 'neutral' => {
     switch (contentType) {
-      case 'article':
+      case 'Article':
         return 'primary';
-      case 'video':
+      case 'Video':
         return 'success';
-      case 'guide':
+      case 'Guide':
         return 'warning';
-      case 'infographic':
+      case 'Infographic':
         return 'info';
       default:
         return 'neutral';
     }
   };
 
+  const getCategoryIcon = (iconName: string) => {
+    const IconComponent = ICON_MAP[iconName] || BookOpen;
+    return IconComponent;
+  };
+
+  const getContentTypeIcon = (iconName: string) => {
+    const IconComponent = ICON_MAP[iconName] || FileText;
+    return IconComponent;
+  };
+
+  const getTotalCount = () => {
+    return Object.values(categoryCounts).reduce((sum, count) => sum + count, 0);
+  };
+
   const renderResourceCard = ({ item }: { item: EducationalContent }) => {
     const cardHeader = (
       <View style={styles.cardHeader}>
-        <Badge variant={getTypeVariant(item.contentType)} size="sm">
-          {item.contentType.toUpperCase()}
+        <Badge variant={getTypeVariant(item.content_types?.name || '')} size="sm">
+          {item.content_types?.name.toUpperCase() || 'CONTENT'}
         </Badge>
         <TouchableOpacity onPress={() => toggleBookmark(item.id)} activeOpacity={0.7}>
           <Bookmark
             size={20}
-            color={item.isBookmarked ? colors.primary : colors.textSecondary}
-            fill={item.isBookmarked ? colors.primary : 'transparent'}
+            color={item.is_bookmarked ? colors.primary : colors.textSecondary}
+            fill={item.is_bookmarked ? colors.primary : 'transparent'}
           />
         </TouchableOpacity>
       </View>
@@ -309,11 +196,14 @@ export default function HealthLibraryScreen() {
 
     const cardFooter = (
       <Button
-        onPress={() => setSelectedContent(item)}
+        onPress={() => {
+          setSelectedContent(item);
+          contentService.incrementViews(item.id);
+        }}
         variant="primary"
         size="sm"
       >
-        {item.contentType === 'video' ? 'Watch Now' : 'Read More'}
+        {item.content_types?.slug === 'video' ? 'Watch Now' : 'Read More'}
       </Button>
     );
 
@@ -325,24 +215,32 @@ export default function HealthLibraryScreen() {
             {item.description}
           </Text>
 
-          <View style={styles.tagsRow}>
-            {item.tags.slice(0, 3).map((tag, index) => (
-              <Badge key={index} variant="neutral" size="sm">
-                {tag}
-              </Badge>
-            ))}
-          </View>
+          {item.tags && item.tags.length > 0 && (
+            <View style={styles.tagsRow}>
+              {item.tags.slice(0, 3).map((tagObj, index) => (
+                <Badge key={index} variant="neutral" size="sm">
+                  {tagObj.tag}
+                </Badge>
+              ))}
+            </View>
+          )}
 
           <View style={styles.metadataRow}>
             <View style={styles.metadataItem}>
               <Clock size={14} color={colors.textSecondary} />
               <Text style={[styles.metadataText, { color: colors.textSecondary }]}>
-                {item.readTime ? `${item.readTime} min` : `${item.duration} min`}
+                {item.read_time_minutes
+                  ? `${item.read_time_minutes} min`
+                  : `${item.duration_minutes} min`}
               </Text>
             </View>
 
             <View style={styles.metadataItem}>
-              <Star size={14} color={theme.colors.feedback.warning.bg} fill={theme.colors.feedback.warning.bg} />
+              <Star
+                size={14}
+                color={theme.colors.feedback.warning.bg}
+                fill={theme.colors.feedback.warning.bg}
+              />
               <Text style={[styles.metadataText, { color: colors.textSecondary }]}>
                 {item.rating.toFixed(1)}
               </Text>
@@ -356,10 +254,7 @@ export default function HealthLibraryScreen() {
                 ]}
               >
                 <Text
-                  style={[
-                    styles.difficultyText,
-                    { color: getDifficultyColor(item.difficulty) },
-                  ]}
+                  style={[styles.difficultyText, { color: getDifficultyColor(item.difficulty) }]}
                 >
                   {item.difficulty}
                 </Text>
@@ -370,6 +265,20 @@ export default function HealthLibraryScreen() {
       </View>
     );
   };
+
+  if (loading) {
+    return (
+      <View style={{ flex: 1, backgroundColor: colors.background }}>
+        <TopBar title="Health Library" onMenuPress={handleMenuPress} />
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
+            Loading content...
+          </Text>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View testID="screen-patient-health-library" style={{ flex: 1, backgroundColor: colors.background }}>
@@ -385,40 +294,110 @@ export default function HealthLibraryScreen() {
             />
           </View>
 
-          <View style={[styles.pickerContainer, { backgroundColor: theme.colors.surface.alt, borderColor: colors.border }]}>
-            <Text style={[styles.pickerLabel, { color: colors.textSecondary }]}>Category</Text>
-            <Picker
-              selectedValue={selectedCategory}
-              onValueChange={setSelectedCategory}
-              style={[styles.picker, { color: colors.text }]}
-            >
-              {categories.map((cat) => (
-                <Picker.Item key={cat} label={cat === 'all' ? 'All Categories' : cat} value={cat} />
-              ))}
-            </Picker>
-          </View>
+          <TouchableOpacity
+            onPress={() => setShowFilters(!showFilters)}
+            style={styles.filterToggle}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.filterToggleText, { color: colors.primary }]}>
+              {showFilters ? 'Hide Filters' : 'Show Filters'}
+            </Text>
+          </TouchableOpacity>
 
-          <View style={[styles.pickerContainer, { backgroundColor: theme.colors.surface.alt, borderColor: colors.border }]}>
-            <Text style={[styles.pickerLabel, { color: colors.textSecondary }]}>Type</Text>
-            <Picker
-              selectedValue={selectedContentType}
-              onValueChange={setSelectedContentType}
-              style={[styles.picker, { color: colors.text }]}
-            >
-              {contentTypes.map((type) => (
-                <Picker.Item key={type} label={type === 'all' ? 'All Types' : type.charAt(0).toUpperCase() + type.slice(1)} value={type} />
-              ))}
-            </Picker>
-          </View>
+          {showFilters && (
+            <>
+              <View style={styles.filterSection}>
+                <Text style={[styles.filterLabel, { color: colors.text }]}>Categories</Text>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.chipContainer}
+                >
+                  <FilterChip
+                    label="All"
+                    isSelected={selectedCategoryId === 'all'}
+                    onPress={() => setSelectedCategoryId('all')}
+                    count={getTotalCount()}
+                  />
+                  {categories.map((category) => {
+                    const IconComponent = getCategoryIcon(category.icon_name);
+                    return (
+                      <FilterChip
+                        key={category.id}
+                        label={category.name}
+                        isSelected={selectedCategoryId === category.id}
+                        onPress={() => setSelectedCategoryId(category.id)}
+                        icon={
+                          <IconComponent
+                            size={14}
+                            color={
+                              selectedCategoryId === category.id ? '#FFFFFF' : category.color
+                            }
+                          />
+                        }
+                        count={categoryCounts[category.id] || 0}
+                      />
+                    );
+                  })}
+                </ScrollView>
+              </View>
 
-          <View style={styles.switchRow}>
-            <Text style={[styles.switchLabel, { color: colors.text }]}>Show Bookmarked Only</Text>
-            <Switch checked={showBookmarkedOnly} onChange={setShowBookmarkedOnly} />
-          </View>
+              <View style={styles.filterSection}>
+                <Text style={[styles.filterLabel, { color: colors.text }]}>Content Type</Text>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.chipContainer}
+                >
+                  <FilterChip
+                    label="All Types"
+                    isSelected={selectedContentTypeId === 'all'}
+                    onPress={() => setSelectedContentTypeId('all')}
+                    count={getTotalCount()}
+                  />
+                  {contentTypes.map((type) => {
+                    const IconComponent = getContentTypeIcon(type.icon_name);
+                    return (
+                      <FilterChip
+                        key={type.id}
+                        label={type.name}
+                        isSelected={selectedContentTypeId === type.id}
+                        onPress={() => setSelectedContentTypeId(type.id)}
+                        icon={
+                          <IconComponent
+                            size={14}
+                            color={selectedContentTypeId === type.id ? '#FFFFFF' : type.color}
+                          />
+                        }
+                        count={typeCounts[type.id] || 0}
+                      />
+                    );
+                  })}
+                </ScrollView>
+              </View>
 
-          <Text style={[styles.resultsText, { color: colors.textSecondary }]}>
-            {filteredContent.length} Result{filteredContent.length !== 1 ? 's' : ''} Found
-          </Text>
+              <View style={styles.switchRow}>
+                <Text style={[styles.switchLabel, { color: colors.text }]}>
+                  Show Bookmarked Only
+                </Text>
+                <Switch checked={showBookmarkedOnly} onChange={setShowBookmarkedOnly} />
+              </View>
+            </>
+          )}
+
+          <View style={styles.resultsHeader}>
+            <Text style={[styles.resultsText, { color: colors.textSecondary }]}>
+              {filteredContent.length} Result{filteredContent.length !== 1 ? 's' : ''} Found
+            </Text>
+            {(selectedCategoryId !== 'all' ||
+              selectedContentTypeId !== 'all' ||
+              searchTerm !== '' ||
+              showBookmarkedOnly) && (
+              <TouchableOpacity onPress={resetFilters} activeOpacity={0.7}>
+                <Text style={[styles.clearFilters, { color: colors.primary }]}>Clear Filters</Text>
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
 
         {filteredContent.length === 0 ? (
@@ -451,7 +430,7 @@ export default function HealthLibraryScreen() {
         <SafeAreaView style={[styles.modalContainer, { backgroundColor: colors.background }]}>
           <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
             <Text style={[styles.modalTitle, { color: colors.text }]}>
-              {selectedContent?.contentType === 'video' ? 'Video Details' : 'Article Details'}
+              {selectedContent?.content_types?.slug === 'video' ? 'Video Details' : 'Article Details'}
             </Text>
             <TouchableOpacity onPress={() => setSelectedContent(null)} activeOpacity={0.7}>
               <X size={24} color={colors.text} />
@@ -465,8 +444,8 @@ export default function HealthLibraryScreen() {
               </Text>
 
               <View style={styles.articleMeta}>
-                <Badge variant={getTypeVariant(selectedContent.contentType)} size="sm">
-                  {selectedContent.contentType.toUpperCase()}
+                <Badge variant={getTypeVariant(selectedContent.content_types?.name || '')} size="sm">
+                  {selectedContent.content_types?.name.toUpperCase() || 'CONTENT'}
                 </Badge>
                 <View
                   style={[
@@ -490,7 +469,7 @@ export default function HealthLibraryScreen() {
                   By {selectedContent.author}
                 </Text>
                 <Text style={[styles.articleInfoText, { color: colors.textSecondary }]}>
-                  Published: {new Date(selectedContent.publishedDate).toLocaleDateString()}
+                  Published: {new Date(selectedContent.published_date).toLocaleDateString()}
                 </Text>
                 <View style={styles.articleStats}>
                   <View style={styles.statItem}>
@@ -500,7 +479,11 @@ export default function HealthLibraryScreen() {
                     </Text>
                   </View>
                   <View style={styles.statItem}>
-                    <Star size={14} color={theme.colors.feedback.warning.bg} fill={theme.colors.feedback.warning.bg} />
+                    <Star
+                      size={14}
+                      color={theme.colors.feedback.warning.bg}
+                      fill={theme.colors.feedback.warning.bg}
+                    />
                     <Text style={[styles.statText, { color: colors.textSecondary }]}>
                       {selectedContent.rating.toFixed(1)}
                     </Text>
@@ -508,23 +491,27 @@ export default function HealthLibraryScreen() {
                   <View style={styles.statItem}>
                     <Clock size={14} color={colors.textSecondary} />
                     <Text style={[styles.statText, { color: colors.textSecondary }]}>
-                      {selectedContent.readTime ? `${selectedContent.readTime} min read` : `${selectedContent.duration} min`}
+                      {selectedContent.read_time_minutes
+                        ? `${selectedContent.read_time_minutes} min read`
+                        : `${selectedContent.duration_minutes} min`}
                     </Text>
                   </View>
                 </View>
               </View>
 
-              <View style={styles.tagsSection}>
-                {selectedContent.tags.map((tag, index) => (
-                  <Badge key={index} variant="info" size="sm">
-                    {tag}
-                  </Badge>
-                ))}
-              </View>
+              {selectedContent.tags && selectedContent.tags.length > 0 && (
+                <View style={styles.tagsSection}>
+                  {selectedContent.tags.map((tagObj, index) => (
+                    <Badge key={index} variant="info" size="sm">
+                      {tagObj.tag}
+                    </Badge>
+                  ))}
+                </View>
+              )}
 
               <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
-              {selectedContent.contentType === 'video' ? (
+              {selectedContent.content_types?.slug === 'video' ? (
                 <View style={styles.videoContainer}>
                   <View style={[styles.videoPlaceholder, { backgroundColor: colors.border }]}>
                     <View style={[styles.playButtonContainer, { backgroundColor: colors.primary }]}>
@@ -533,44 +520,56 @@ export default function HealthLibraryScreen() {
                   </View>
                   <View style={styles.videoControls}>
                     <View style={styles.videoControlsRow}>
-                      <Text style={[styles.videoControlText, { color: colors.textSecondary }]}>0:00</Text>
+                      <Text style={[styles.videoControlText, { color: colors.textSecondary }]}>
+                        0:00
+                      </Text>
                       <View style={[styles.progressBar, { backgroundColor: colors.border }]}>
-                        <View style={[styles.progressFill, { backgroundColor: colors.primary, width: '0%' }]} />
+                        <View
+                          style={[
+                            styles.progressFill,
+                            { backgroundColor: colors.primary, width: '0%' },
+                          ]}
+                        />
                       </View>
                       <Text style={[styles.videoControlText, { color: colors.textSecondary }]}>
-                        {selectedContent.duration}:00
+                        {selectedContent.duration_minutes}:00
                       </Text>
                     </View>
                   </View>
                   <View style={styles.videoDescription}>
-                    <Text style={[styles.videoDescriptionTitle, { color: colors.text }]}>About this video</Text>
+                    <Text style={[styles.videoDescriptionTitle, { color: colors.text }]}>
+                      About this video
+                    </Text>
                     <Text style={[styles.videoDescriptionText, { color: colors.textSecondary }]}>
                       {selectedContent.description}
                     </Text>
-                    <Text style={[styles.videoDescriptionText, { color: colors.textSecondary, marginTop: 12 }]}>
-                      {getFullContent(selectedContent.id)}
-                    </Text>
+                    {selectedContent.full_content && (
+                      <Text
+                        style={[
+                          styles.videoDescriptionText,
+                          { color: colors.textSecondary, marginTop: 12 },
+                        ]}
+                      >
+                        {selectedContent.full_content}
+                      </Text>
+                    )}
                   </View>
                 </View>
               ) : (
                 <Text style={[styles.articleBody, { color: colors.text }]}>
-                  {getFullContent(selectedContent.id)}
+                  {selectedContent.full_content || selectedContent.description}
                 </Text>
               )}
 
               <View style={styles.modalActions}>
                 <Button
                   onPress={() => toggleBookmark(selectedContent.id)}
-                  variant={selectedContent.isBookmarked ? 'primary' : 'secondary'}
+                  variant={selectedContent.is_bookmarked ? 'primary' : 'secondary'}
                   size="md"
                 >
-                  {selectedContent.isBookmarked ? 'Bookmarked' : 'Bookmark'}
+                  {selectedContent.is_bookmarked ? 'Bookmarked' : 'Bookmark'}
                 </Button>
-                <Button
-                  onPress={() => setSelectedContent(null)}
-                  variant="secondary"
-                  size="md"
-                >
+                <Button onPress={() => setSelectedContent(null)} variant="secondary" size="md">
                   Close
                 </Button>
               </View>
@@ -586,25 +585,41 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 16,
+  },
+  loadingText: {
+    fontSize: 16,
+  },
   filtersSection: {
     padding: 16,
-    gap: 12,
+    gap: 16,
   },
   searchInput: {
     marginBottom: 4,
   },
-  pickerContainer: {
-    borderWidth: 1,
-    borderRadius: 8,
-    overflow: 'hidden',
+  filterToggle: {
+    alignSelf: 'flex-start',
+    paddingVertical: 4,
   },
-  pickerLabel: {
-    fontSize: 12,
-    paddingHorizontal: 12,
-    paddingTop: 8,
+  filterToggleText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
-  picker: {
-    height: 50,
+  filterSection: {
+    gap: 8,
+  },
+  filterLabel: {
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  chipContainer: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingVertical: 4,
   },
   switchRow: {
     flexDirection: 'row',
@@ -616,9 +631,17 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '500',
   },
+  resultsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   resultsText: {
     fontSize: 14,
-    marginTop: 8,
+  },
+  clearFilters: {
+    fontSize: 14,
+    fontWeight: '600',
   },
   listContent: {
     paddingHorizontal: 16,
