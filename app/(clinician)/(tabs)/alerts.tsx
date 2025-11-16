@@ -314,335 +314,342 @@ export default function AlertsScreen() {
   const acknowledgedCount = ALERTS.filter((a) => a.status === 'acknowledged').length;
   const resolvedCount = ALERTS.filter((a) => a.status === 'resolved').length;
 
+  const hasActiveFilters =
+    searchTerm !== '' ||
+    priorityFilter !== 'all' ||
+    statusFilter !== 'all' ||
+    typeFilter !== 'all';
+
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <TopBar title="Alerts" onMenuPress={handleMenuPress} />
       <ScrollView
         testID="screen-clinician-alerts"
         style={{ flex: 1 }}
-        contentContainerStyle={[styles.scrollContent, { padding: theme.spacing[4] }]}
+        contentContainerStyle={styles.scrollContent}
       >
-        <View style={{ gap: theme.spacing[4] }}>
-          <View>
-            <Text
-              style={{
-                fontSize: theme.typography.fontSize['2xl'],
-                fontFamily: theme.typography.fontFamily.bold,
-                color: theme.colors.text.primary,
-                marginBottom: theme.spacing[1],
-              }}
-            >
-              Clinical Alerts
-            </Text>
-            <Text
-              style={{
-                fontSize: theme.typography.fontSize.sm,
-                color: theme.colors.text.muted,
-              }}
-            >
-              Review and manage alerts requiring your attention.
-            </Text>
-          </View>
-
-          <Card variant="bordered">
-            <View style={{ gap: theme.spacing[3] }}>
+        <View style={{ paddingHorizontal: theme.spacing[3], paddingTop: theme.spacing[3] }}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{
+              gap: theme.spacing[3],
+              paddingBottom: theme.spacing[3],
+            }}
+          >
+            <View style={styles.statCard}>
               <View
-                style={{
-                  flexDirection: 'row',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                }}
-              >
-                <View style={{ flex: 1 }}>
-                  <Text
-                    style={{
-                      fontSize: theme.typography.fontSize.xs,
-                      color: theme.colors.text.muted,
-                    }}
-                  >
-                    Active Alerts
-                  </Text>
-                  <Text
-                    style={{
-                      fontSize: theme.typography.fontSize['2xl'],
-                      fontFamily: theme.typography.fontFamily.bold,
-                      color: theme.colors.feedback.danger.bg,
-                    }}
-                  >
-                    {activeCount}
-                  </Text>
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text
-                    style={{
-                      fontSize: theme.typography.fontSize.xs,
-                      color: theme.colors.text.muted,
-                    }}
-                  >
-                    High Priority
-                  </Text>
-                  <Text
-                    style={{
-                      fontSize: theme.typography.fontSize['2xl'],
-                      fontFamily: theme.typography.fontFamily.bold,
-                      color: theme.colors.feedback.danger.bg,
-                    }}
-                  >
-                    {highPriorityActiveCount}
-                  </Text>
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text
-                    style={{
-                      fontSize: theme.typography.fontSize.xs,
-                      color: theme.colors.text.muted,
-                    }}
-                  >
-                    Acknowledged
-                  </Text>
-                  <Text
-                    style={{
-                      fontSize: theme.typography.fontSize['2xl'],
-                      fontFamily: theme.typography.fontFamily.bold,
-                      color: theme.colors.feedback.warning.bg,
-                    }}
-                  >
-                    {acknowledgedCount}
-                  </Text>
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text
-                    style={{
-                      fontSize: theme.typography.fontSize.xs,
-                      color: theme.colors.text.muted,
-                    }}
-                  >
-                    Resolved
-                  </Text>
-                  <Text
-                    style={{
-                      fontSize: theme.typography.fontSize['2xl'],
-                      fontFamily: theme.typography.fontFamily.bold,
-                      color: theme.colors.feedback.success.bg,
-                    }}
-                  >
-                    {resolvedCount}
-                  </Text>
-                </View>
-              </View>
-            </View>
-          </Card>
-
-          <Card variant="bordered">
-            <View style={{ gap: theme.spacing[3] }}>
-              <Input
-                value={searchTerm}
-                onChangeText={setSearchTerm}
-                placeholder="Search alerts or patients..."
-                leftIcon={<Search size={20} color={theme.colors.text.muted} />}
+                style={[
+                  styles.statIndicator,
+                  { backgroundColor: theme.colors.feedback.danger.bg },
+                ]}
               />
-
-              <View style={{ gap: theme.spacing[2] }}>
-                <Text
-                  style={{
-                    fontSize: theme.typography.fontSize.sm,
-                    fontFamily: theme.typography.fontFamily.semibold,
-                    color: theme.colors.text.primary,
-                  }}
-                >
-                  Priority
-                </Text>
-                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing[2] }}>
-                  <Button
-                    onPress={() => setPriorityFilter('all')}
-                    variant={priorityFilter === 'all' ? 'primary' : 'outline'}
-                    size="sm"
-                    title="All"
-                  />
-                  <Button
-                    onPress={() => setPriorityFilter('high')}
-                    variant={priorityFilter === 'high' ? 'primary' : 'outline'}
-                    size="sm"
-                    title="High"
-                  />
-                  <Button
-                    onPress={() => setPriorityFilter('medium')}
-                    variant={priorityFilter === 'medium' ? 'primary' : 'outline'}
-                    size="sm"
-                    title="Medium"
-                  />
-                  <Button
-                    onPress={() => setPriorityFilter('low')}
-                    variant={priorityFilter === 'low' ? 'primary' : 'outline'}
-                    size="sm"
-                    title="Low"
-                  />
-                </View>
-              </View>
-
-              <View style={{ gap: theme.spacing[2] }}>
-                <Text
-                  style={{
-                    fontSize: theme.typography.fontSize.sm,
-                    fontFamily: theme.typography.fontFamily.semibold,
-                    color: theme.colors.text.primary,
-                  }}
-                >
-                  Status
-                </Text>
-                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing[2] }}>
-                  <Button
-                    onPress={() => setStatusFilter('all')}
-                    variant={statusFilter === 'all' ? 'primary' : 'outline'}
-                    size="sm"
-                    title="All"
-                  />
-                  <Button
-                    onPress={() => setStatusFilter('active')}
-                    variant={statusFilter === 'active' ? 'primary' : 'outline'}
-                    size="sm"
-                    title="Active"
-                  />
-                  <Button
-                    onPress={() => setStatusFilter('acknowledged')}
-                    variant={statusFilter === 'acknowledged' ? 'primary' : 'outline'}
-                    size="sm"
-                    title="Ack"
-                  />
-                  <Button
-                    onPress={() => setStatusFilter('resolved')}
-                    variant={statusFilter === 'resolved' ? 'primary' : 'outline'}
-                    size="sm"
-                    title="Resolved"
-                  />
-                </View>
-              </View>
-
-              <View style={{ gap: theme.spacing[2] }}>
-                <Text
-                  style={{
-                    fontSize: theme.typography.fontSize.sm,
-                    fontFamily: theme.typography.fontFamily.semibold,
-                    color: theme.colors.text.primary,
-                  }}
-                >
-                  Type
-                </Text>
-                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing[2] }}>
-                  <Button
-                    onPress={() => setTypeFilter('all')}
-                    variant={typeFilter === 'all' ? 'primary' : 'outline'}
-                    size="sm"
-                    title="All"
-                  />
-                  <Button
-                    onPress={() => setTypeFilter('critical')}
-                    variant={typeFilter === 'critical' ? 'primary' : 'outline'}
-                    size="sm"
-                    title="Critical"
-                  />
-                  <Button
-                    onPress={() => setTypeFilter('meds')}
-                    variant={typeFilter === 'meds' ? 'primary' : 'outline'}
-                    size="sm"
-                    title="Meds"
-                  />
-                  <Button
-                    onPress={() => setTypeFilter('labs')}
-                    variant={typeFilter === 'labs' ? 'primary' : 'outline'}
-                    size="sm"
-                    title="Labs"
-                  />
-                  <Button
-                    onPress={() => setTypeFilter('appts')}
-                    variant={typeFilter === 'appts' ? 'primary' : 'outline'}
-                    size="sm"
-                    title="Appts"
-                  />
-                </View>
-              </View>
-
-              <View style={{ alignItems: 'flex-end' }}>
-                <Button
-                  onPress={clearFilters}
-                  variant="ghost"
-                  size="sm"
-                  title="Clear Filters"
-                />
-              </View>
+              <Text style={[styles.statLabel, { color: theme.colors.text.muted }]}>Active</Text>
+              <Text style={[styles.statValue, { color: theme.colors.text.primary }]}>
+                {activeCount}
+              </Text>
             </View>
-          </Card>
 
-          {filteredAlerts.length === 0 ? (
+            <View style={styles.statCard}>
+              <View
+                style={[
+                  styles.statIndicator,
+                  { backgroundColor: theme.colors.feedback.danger.bg },
+                ]}
+              />
+              <Text style={[styles.statLabel, { color: theme.colors.text.muted }]}>
+                High Priority
+              </Text>
+              <Text style={[styles.statValue, { color: theme.colors.text.primary }]}>
+                {highPriorityActiveCount}
+              </Text>
+            </View>
+
+            <View style={styles.statCard}>
+              <View
+                style={[
+                  styles.statIndicator,
+                  { backgroundColor: theme.colors.feedback.warning.bg },
+                ]}
+              />
+              <Text style={[styles.statLabel, { color: theme.colors.text.muted }]}>
+                Acknowledged
+              </Text>
+              <Text style={[styles.statValue, { color: theme.colors.text.primary }]}>
+                {acknowledgedCount}
+              </Text>
+            </View>
+
+            <View style={styles.statCard}>
+              <View
+                style={[
+                  styles.statIndicator,
+                  { backgroundColor: theme.colors.feedback.success.bg },
+                ]}
+              />
+              <Text style={[styles.statLabel, { color: theme.colors.text.muted }]}>Resolved</Text>
+              <Text style={[styles.statValue, { color: theme.colors.text.primary }]}>
+                {resolvedCount}
+              </Text>
+            </View>
+          </ScrollView>
+        </View>
+
+        <View style={{ paddingHorizontal: theme.spacing[3], marginBottom: theme.spacing[2] }}>
+          <Input
+            value={searchTerm}
+            onChangeText={setSearchTerm}
+            placeholder="Search alerts..."
+            leftIcon={<Search size={18} color={theme.colors.text.muted} />}
+          />
+        </View>
+
+        <View style={{ paddingHorizontal: theme.spacing[3], marginBottom: theme.spacing[3] }}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ gap: theme.spacing[2] }}
+          >
+            <TouchableOpacity
+              onPress={() => setPriorityFilter(priorityFilter === 'high' ? 'all' : 'high')}
+              style={[
+                styles.filterChip,
+                {
+                  backgroundColor:
+                    priorityFilter === 'high'
+                      ? theme.colors.primary.bg
+                      : theme.colors.surface.bg,
+                  borderColor:
+                    priorityFilter === 'high'
+                      ? theme.colors.primary.border
+                      : theme.colors.surface.border,
+                },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.filterChipText,
+                  {
+                    color:
+                      priorityFilter === 'high'
+                        ? theme.colors.primary.fg
+                        : theme.colors.text.primary,
+                  },
+                ]}
+              >
+                High Priority
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => setStatusFilter(statusFilter === 'active' ? 'all' : 'active')}
+              style={[
+                styles.filterChip,
+                {
+                  backgroundColor:
+                    statusFilter === 'active'
+                      ? theme.colors.primary.bg
+                      : theme.colors.surface.bg,
+                  borderColor:
+                    statusFilter === 'active'
+                      ? theme.colors.primary.border
+                      : theme.colors.surface.border,
+                },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.filterChipText,
+                  {
+                    color:
+                      statusFilter === 'active'
+                        ? theme.colors.primary.fg
+                        : theme.colors.text.primary,
+                  },
+                ]}
+              >
+                Active
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => setTypeFilter(typeFilter === 'critical' ? 'all' : 'critical')}
+              style={[
+                styles.filterChip,
+                {
+                  backgroundColor:
+                    typeFilter === 'critical'
+                      ? theme.colors.primary.bg
+                      : theme.colors.surface.bg,
+                  borderColor:
+                    typeFilter === 'critical'
+                      ? theme.colors.primary.border
+                      : theme.colors.surface.border,
+                },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.filterChipText,
+                  {
+                    color:
+                      typeFilter === 'critical'
+                        ? theme.colors.primary.fg
+                        : theme.colors.text.primary,
+                  },
+                ]}
+              >
+                Critical
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => setTypeFilter(typeFilter === 'meds' ? 'all' : 'meds')}
+              style={[
+                styles.filterChip,
+                {
+                  backgroundColor:
+                    typeFilter === 'meds' ? theme.colors.primary.bg : theme.colors.surface.bg,
+                  borderColor:
+                    typeFilter === 'meds'
+                      ? theme.colors.primary.border
+                      : theme.colors.surface.border,
+                },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.filterChipText,
+                  {
+                    color:
+                      typeFilter === 'meds' ? theme.colors.primary.fg : theme.colors.text.primary,
+                  },
+                ]}
+              >
+                Medications
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => setTypeFilter(typeFilter === 'labs' ? 'all' : 'labs')}
+              style={[
+                styles.filterChip,
+                {
+                  backgroundColor:
+                    typeFilter === 'labs' ? theme.colors.primary.bg : theme.colors.surface.bg,
+                  borderColor:
+                    typeFilter === 'labs'
+                      ? theme.colors.primary.border
+                      : theme.colors.surface.border,
+                },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.filterChipText,
+                  {
+                    color:
+                      typeFilter === 'labs' ? theme.colors.primary.fg : theme.colors.text.primary,
+                  },
+                ]}
+              >
+                Labs
+              </Text>
+            </TouchableOpacity>
+
+            {hasActiveFilters && (
+              <TouchableOpacity
+                onPress={clearFilters}
+                style={[
+                  styles.filterChip,
+                  {
+                    backgroundColor: theme.colors.surface.bg,
+                    borderColor: theme.colors.surface.border,
+                  },
+                ]}
+              >
+                <Text style={[styles.filterChipText, { color: theme.colors.text.muted }]}>
+                  Clear
+                </Text>
+              </TouchableOpacity>
+            )}
+          </ScrollView>
+        </View>
+
+        {filteredAlerts.length === 0 ? (
+          <View style={{ paddingHorizontal: theme.spacing[3] }}>
             <EmptyState
               title="No alerts found"
               description="Try adjusting your search or filters."
               actionLabel="Clear Filters"
               onAction={clearFilters}
             />
-          ) : (
-            <View style={{ gap: theme.spacing[3] }}>
-              {filteredAlerts.map((alert) => (
-                <Card key={alert.id} variant="bordered">
-                  <View style={{ gap: theme.spacing[3] }}>
+          </View>
+        ) : (
+          <View style={{ gap: theme.spacing[2], paddingHorizontal: theme.spacing[3], paddingBottom: theme.spacing[3] }}>
+            {filteredAlerts.map((alert) => (
+              <TouchableOpacity key={alert.id} activeOpacity={0.7}>
+                <Card variant="elevated">
+                  <View style={{ gap: theme.spacing[2] }}>
                     <View
                       style={{
                         flexDirection: 'row',
                         alignItems: 'flex-start',
-                        justifyContent: 'space-between',
-                        gap: theme.spacing[3],
+                        gap: theme.spacing[2],
                       }}
                     >
                       <View
                         style={{
-                          flexDirection: 'row',
-                          alignItems: 'flex-start',
-                          gap: theme.spacing[3],
-                          flex: 1,
+                          width: 36,
+                          height: 36,
+                          borderRadius: theme.borderRadius.md,
+                          backgroundColor: getAlertIconColor(alert.type, alert.priority),
+                          justifyContent: 'center',
+                          alignItems: 'center',
                         }}
                       >
+                        {getAlertIcon(alert.type)}
+                      </View>
+                      <View style={{ flex: 1 }}>
                         <View
                           style={{
-                            width: 40,
-                            height: 40,
-                            borderRadius: theme.borderRadius.md,
-                            backgroundColor: getAlertIconColor(alert.type, alert.priority),
-                            justifyContent: 'center',
-                            alignItems: 'center',
+                            flexDirection: 'row',
+                            justifyContent: 'space-between',
+                            alignItems: 'flex-start',
+                            marginBottom: theme.spacing[1],
                           }}
                         >
-                          {getAlertIcon(alert.type)}
-                        </View>
-                        <View style={{ flex: 1 }}>
                           <Text
                             style={{
                               fontSize: theme.typography.fontSize.base,
                               fontFamily: theme.typography.fontFamily.semibold,
                               color: theme.colors.text.primary,
+                              flex: 1,
+                              marginRight: theme.spacing[2],
                             }}
                           >
                             {alert.title}
                           </Text>
-                          <Text
-                            style={{
-                              fontSize: theme.typography.fontSize.xs,
-                              color: theme.colors.text.muted,
-                              marginTop: theme.spacing[1],
-                            }}
-                          >
-                            {alert.patientName} • Patient
-                          </Text>
+                          <Badge variant={getPriorityBadgeVariant(alert.priority)} size="sm">
+                            {alert.priority.charAt(0).toUpperCase() + alert.priority.slice(1)}
+                          </Badge>
                         </View>
+                        <Text
+                          style={{
+                            fontSize: theme.typography.fontSize.xs,
+                            color: theme.colors.text.muted,
+                          }}
+                        >
+                          {alert.patientName}
+                        </Text>
                       </View>
-                      <Badge variant={getPriorityBadgeVariant(alert.priority)} size="sm">
-                        {alert.priority.toUpperCase()}
-                      </Badge>
                     </View>
 
                     <Text
                       style={{
                         fontSize: theme.typography.fontSize.sm,
                         color: theme.colors.text.muted,
+                        lineHeight: theme.typography.lineHeight.sm,
                       }}
                       numberOfLines={2}
                     >
@@ -654,11 +661,11 @@ export default function AlertsScreen() {
                         flexDirection: 'row',
                         justifyContent: 'space-between',
                         alignItems: 'center',
-                        flexWrap: 'wrap',
-                        gap: theme.spacing[2],
                       }}
                     >
-                      <View style={{ flexDirection: 'row', gap: theme.spacing[2], alignItems: 'center' }}>
+                      <View
+                        style={{ flexDirection: 'row', gap: theme.spacing[2], alignItems: 'center' }}
+                      >
                         <Text
                           style={{
                             fontSize: theme.typography.fontSize.xs,
@@ -667,72 +674,95 @@ export default function AlertsScreen() {
                         >
                           {formatDateTime(alert.createdAt)}
                         </Text>
-                        <Badge variant={getStatusBadgeVariant(alert.status)} size="sm">
-                          {alert.status.toUpperCase()}
-                        </Badge>
-                      </View>
-                      {alert.dueBy && (
+                        <View
+                          style={{
+                            width: 3,
+                            height: 3,
+                            borderRadius: 1.5,
+                            backgroundColor: theme.colors.text.muted,
+                          }}
+                        />
                         <Text
                           style={{
                             fontSize: theme.typography.fontSize.xs,
-                            color: isOverdue(alert.dueBy)
-                              ? theme.colors.feedback.danger.bg
-                              : theme.colors.text.muted,
-                            fontFamily: isOverdue(alert.dueBy)
-                              ? theme.typography.fontFamily.semibold
-                              : theme.typography.fontFamily.normal,
+                            color: theme.colors.text.muted,
                           }}
                         >
-                          {isOverdue(alert.dueBy) ? '⚠ OVERDUE' : `Due: ${formatDateTime(alert.dueBy)}`}
+                          {alert.status.charAt(0).toUpperCase() + alert.status.slice(1)}
+                        </Text>
+                      </View>
+                      {alert.dueBy && isOverdue(alert.dueBy) && (
+                        <Text
+                          style={{
+                            fontSize: theme.typography.fontSize.xs,
+                            color: theme.colors.feedback.danger.bg,
+                            fontFamily: theme.typography.fontFamily.semibold,
+                          }}
+                        >
+                          Overdue
                         </Text>
                       )}
                     </View>
 
-                    <View
-                      style={{
-                        flexDirection: 'row',
-                        gap: theme.spacing[2],
-                        flexWrap: 'wrap',
-                      }}
-                    >
-                      {alert.status === 'active' && (
-                        <>
-                          <Button
-                            onPress={() => console.log('Acknowledge alert', alert.id)}
-                            variant="outline"
-                            size="sm"
-                            title="Acknowledge"
-                          />
-                          <Button
-                            onPress={() => console.log('Resolve alert', alert.id)}
-                            variant="primary"
-                            size="sm"
-                            title="Resolve"
-                          />
-                        </>
-                      )}
-                      {alert.status === 'acknowledged' && (
-                        <Button
+                    {alert.status === 'active' && (
+                      <View
+                        style={{
+                          flexDirection: 'row',
+                          gap: theme.spacing[2],
+                          marginTop: theme.spacing[1],
+                        }}
+                      >
+                        <TouchableOpacity
                           onPress={() => console.log('Resolve alert', alert.id)}
-                          variant="primary"
-                          size="sm"
-                          title="Resolve"
-                        />
-                      )}
-                      <Button
-                        onPress={() => console.log('Contact patient', alert.patientId)}
-                        variant="outline"
-                        size="sm"
-                        leftIcon={<MessageSquare size={16} color={theme.colors.text.primary} />}
-                        title="Contact"
-                      />
-                    </View>
+                          style={{
+                            flex: 1,
+                            paddingVertical: theme.spacing[2],
+                            paddingHorizontal: theme.spacing[3],
+                            backgroundColor: theme.colors.primary.bg,
+                            borderRadius: theme.borderRadius.md,
+                            alignItems: 'center',
+                          }}
+                        >
+                          <Text
+                            style={{
+                              fontSize: theme.typography.fontSize.sm,
+                              fontFamily: theme.typography.fontFamily.semibold,
+                              color: theme.colors.primary.fg,
+                            }}
+                          >
+                            Resolve
+                          </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          onPress={() => console.log('Acknowledge alert', alert.id)}
+                          style={{
+                            paddingVertical: theme.spacing[2],
+                            paddingHorizontal: theme.spacing[3],
+                            backgroundColor: theme.colors.surface.bg,
+                            borderRadius: theme.borderRadius.md,
+                            borderWidth: theme.borderWidth.thin,
+                            borderColor: theme.colors.surface.border,
+                            alignItems: 'center',
+                          }}
+                        >
+                          <Text
+                            style={{
+                              fontSize: theme.typography.fontSize.sm,
+                              fontFamily: theme.typography.fontFamily.semibold,
+                              color: theme.colors.text.primary,
+                            }}
+                          >
+                            Ack
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
                   </View>
                 </Card>
-              ))}
-            </View>
-          )}
-        </View>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
       </ScrollView>
     </View>
   );
@@ -741,5 +771,38 @@ export default function AlertsScreen() {
 const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
+  },
+  statCard: {
+    minWidth: 110,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  statIndicator: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginBottom: 6,
+  },
+  statLabel: {
+    fontSize: 11,
+    marginBottom: 4,
+  },
+  statValue: {
+    fontSize: 20,
+    fontWeight: '700',
+  },
+  filterChip: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  filterChipText: {
+    fontSize: 14,
+    fontWeight: '500',
   },
 });
