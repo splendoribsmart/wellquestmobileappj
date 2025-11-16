@@ -3,711 +3,959 @@ import {
   Text,
   StyleSheet,
   ScrollView,
+  SafeAreaView,
   TouchableOpacity,
-  Alert,
 } from 'react-native';
 import { useState } from 'react';
-import { useRouter } from 'expo-router';
 import { useTheme } from '@theme/index';
 import { getThemeColors } from '@utils/themeHelpers';
 import { TopBar } from '@components/layout/TopBar';
-import { Card, Switch, Input, TextArea, Button, Banner } from '@components/ui';
 import {
-  ChevronRight,
-  User,
-  Bell,
-  Lock,
-  Info,
-  LogOut,
-  Mail,
-  Phone,
-  Shield,
-  Briefcase,
-  Building,
+  Card,
+  Badge,
+  Button,
+  Input,
+  TextArea,
+  Tabs,
+  Switch,
+  Banner,
+} from '@components/ui';
+import {
+  MapPin,
+  Trash2,
 } from 'lucide-react-native';
-import {
-  useProfileSettings,
-  useNotificationSettings,
-  useSecuritySettings,
-  usePreferencesSettings,
-} from '@/src/hooks/useSettings';
-import {
-  MOCK_CLINICIAN_PROFILE,
-  MOCK_CREDENTIALS,
-  MOCK_NOTIFICATIONS,
-  MOCK_PREFERENCES,
-  CredentialsForm,
-  simulateSave,
-} from '@utils/settingsHelpers';
 
-type SettingScreen =
-  | 'main'
-  | 'profile'
-  | 'credentials'
-  | 'security'
-  | 'notifications'
-  | 'preferences';
+type TabKey = 'profile' | 'notifications' | 'security' | 'preferences';
+
+interface ProfileForm {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  credentials: string;
+  specialization: string;
+  licenseNumber: string;
+  bio: string;
+}
+
+interface NotificationPrefs {
+  emailPatientAlerts: boolean;
+  emailAppointments: boolean;
+  emailCritical: boolean;
+  emailSystem: boolean;
+  pushCritical: boolean;
+  pushAppointments: boolean;
+  pushMessages: boolean;
+}
+
+interface SecurityForm {
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+}
+
+interface Session {
+  id: string;
+  device: string;
+  location: string;
+  lastActive: string;
+  isCurrent: boolean;
+}
+
+interface Preferences {
+  language: string;
+  timezone: string;
+  dateFormat: string;
+  showTips: boolean;
+  autoSave: boolean;
+  autoSync: boolean;
+  hipaaMode: boolean;
+}
+
+const INITIAL_PROFILE: ProfileForm = {
+  firstName: 'Demo',
+  lastName: 'Clinician',
+  email: 'clinician@wellquestpro.com',
+  phone: '(555) 123-4567',
+  credentials: 'MD, FACP',
+  specialization: 'Internal Medicine',
+  licenseNumber: 'MD-12345-NY',
+  bio: 'Board-certified physician dedicated to delivering evidence-based care.',
+};
+
+const INITIAL_NOTIFICATIONS: NotificationPrefs = {
+  emailPatientAlerts: true,
+  emailAppointments: true,
+  emailCritical: true,
+  emailSystem: false,
+  pushCritical: true,
+  pushAppointments: true,
+  pushMessages: false,
+};
+
+const INITIAL_SESSIONS: Session[] = [
+  {
+    id: '1',
+    device: 'MacBook Pro',
+    location: 'New York, NY',
+    lastActive: 'Active now',
+    isCurrent: true,
+  },
+  {
+    id: '2',
+    device: 'iPad Pro',
+    location: 'New York, NY',
+    lastActive: '3 hours ago',
+    isCurrent: false,
+  },
+];
+
+const INITIAL_PREFERENCES: Preferences = {
+  language: 'English',
+  timezone: 'ET',
+  dateFormat: 'MM/DD/YYYY',
+  showTips: false,
+  autoSave: true,
+  autoSync: true,
+  hipaaMode: true,
+};
 
 export default function ClinicianSettingsScreen() {
   const { theme } = useTheme();
   const colors = getThemeColors(theme);
-  const router = useRouter();
-  const [currentScreen, setCurrentScreen] = useState<SettingScreen>('main');
 
-  const [patientAlerts, setPatientAlerts] = useState(true);
-  const [autoSync, setAutoSync] = useState(true);
-  const [hipaaMode, setHipaaMode] = useState(true);
+  const [activeTab, setActiveTab] = useState<TabKey>('profile');
 
-  const [credentialsForm, setCredentialsForm] = useState<CredentialsForm>(MOCK_CREDENTIALS);
-  const [credentialsSuccess, setCredentialsSuccess] = useState(false);
-  const [isSavingCredentials, setIsSavingCredentials] = useState(false);
+  const [profileForm, setProfileForm] = useState<ProfileForm>(INITIAL_PROFILE);
+  const [profileError, setProfileError] = useState('');
+  const [profileSuccess, setProfileSuccess] = useState(false);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
 
-  const {
-    profileForm,
-    setProfileForm,
-    profileError,
-    profileSuccess,
-    setProfileSuccess,
-    isSavingProfile,
-    handleSaveProfile,
-    handleResetProfile,
-  } = useProfileSettings(MOCK_CLINICIAN_PROFILE);
+  const [notificationPrefs, setNotificationPrefs] =
+    useState<NotificationPrefs>(INITIAL_NOTIFICATIONS);
+  const [notifSuccess, setNotifSuccess] = useState(false);
+  const [isSavingNotif, setIsSavingNotif] = useState(false);
 
-  const {
-    notificationPrefs,
-    setNotificationPrefs,
-    notifSuccess,
-    setNotifSuccess,
-    isSavingNotif,
-    handleSaveNotifications,
-  } = useNotificationSettings(MOCK_NOTIFICATIONS);
+  const [securityForm, setSecurityForm] = useState<SecurityForm>({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+  });
+  const [securityError, setSecurityError] = useState('');
+  const [securitySuccess, setSecuritySuccess] = useState(false);
+  const [isSavingSecurity, setIsSavingSecurity] = useState(false);
 
-  const {
-    securityForm,
-    setSecurityForm,
-    securityError,
-    securitySuccess,
-    setSecuritySuccess,
-    isSavingSecurity,
-    handleUpdatePassword,
-  } = useSecuritySettings();
+  const [sessions, setSessions] = useState<Session[]>(INITIAL_SESSIONS);
 
-  const {
-    preferences,
-    setPreferences,
-    prefsSuccess,
-    setPrefsSuccess,
-    isSavingPrefs,
-    handleSavePreferences,
-  } = usePreferencesSettings(MOCK_PREFERENCES);
+  const [preferences, setPreferences] = useState<Preferences>(INITIAL_PREFERENCES);
+  const [prefsSuccess, setPrefsSuccess] = useState(false);
+  const [isSavingPrefs, setIsSavingPrefs] = useState(false);
 
-  const handleSaveCredentials = async () => {
-    setIsSavingCredentials(true);
-    try {
-      await simulateSave(credentialsForm);
-      setCredentialsSuccess(true);
-    } catch (err) {
-      console.error('Failed to save credentials:', err);
-    } finally {
-      setIsSavingCredentials(false);
+  const handleSaveProfile = () => {
+    setProfileError('');
+    setProfileSuccess(false);
+
+    if (
+      !profileForm.firstName.trim() ||
+      !profileForm.lastName.trim() ||
+      !profileForm.email.trim()
+    ) {
+      setProfileError('First name, last name, and email are required.');
+      return;
     }
+
+    if (!profileForm.email.includes('@')) {
+      setProfileError('Please enter a valid email address.');
+      return;
+    }
+
+    setIsSavingProfile(true);
+    setTimeout(() => {
+      setIsSavingProfile(false);
+      setProfileSuccess(true);
+    }, 1000);
   };
 
-  const handleSignOut = () => {
-    Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Sign Out',
-        style: 'destructive',
-        onPress: () => {
-          router.replace('/(auth)/login');
-        },
-      },
-    ]);
+  const handleResetProfile = () => {
+    setProfileForm(INITIAL_PROFILE);
+    setProfileError('');
+    setProfileSuccess(false);
   };
 
-  const SettingItem = ({
-    icon: Icon,
-    label,
-    onPress,
-    showArrow = true,
-    rightElement,
-  }: {
-    icon: any;
-    label: string;
-    onPress?: () => void;
-    showArrow?: boolean;
-    rightElement?: React.ReactNode;
-  }) => (
-    <TouchableOpacity
-      style={[styles.settingItem, { borderBottomColor: colors.border }]}
-      onPress={onPress}
-      disabled={!onPress}
-    >
-      <View style={styles.settingLeft}>
-        <Icon size={20} color={colors.primary} />
-        <Text style={[styles.settingLabel, { color: colors.text }]}>{label}</Text>
-      </View>
-      {rightElement || (showArrow && <ChevronRight size={20} color={colors.textSecondary} />)}
-    </TouchableOpacity>
+  const handleSaveNotifications = () => {
+    setIsSavingNotif(true);
+    setTimeout(() => {
+      setIsSavingNotif(false);
+      setNotifSuccess(true);
+    }, 1000);
+  };
+
+  const handleUpdatePassword = () => {
+    setSecurityError('');
+    setSecuritySuccess(false);
+
+    if (
+      !securityForm.currentPassword.trim() ||
+      !securityForm.newPassword.trim() ||
+      !securityForm.confirmPassword.trim()
+    ) {
+      setSecurityError('All password fields are required.');
+      return;
+    }
+
+    if (securityForm.newPassword !== securityForm.confirmPassword) {
+      setSecurityError('New password and confirmation do not match.');
+      return;
+    }
+
+    if (securityForm.newPassword.length < 8) {
+      setSecurityError('New password must be at least 8 characters.');
+      return;
+    }
+
+    setIsSavingSecurity(true);
+    setTimeout(() => {
+      setIsSavingSecurity(false);
+      setSecuritySuccess(true);
+      setSecurityForm({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: '',
+      });
+    }, 1000);
+  };
+
+  const handleRevokeSession = (id: string) => {
+    setSessions((prev) => prev.filter((s) => s.id !== id));
+  };
+
+  const handleSavePreferences = () => {
+    setIsSavingPrefs(true);
+    setTimeout(() => {
+      setIsSavingPrefs(false);
+      setPrefsSuccess(true);
+    }, 1000);
+  };
+
+  const tabs = [
+    { key: 'profile' as TabKey, label: 'Profile' },
+    { key: 'notifications' as TabKey, label: 'Notifications' },
+    { key: 'security' as TabKey, label: 'Security' },
+    { key: 'preferences' as TabKey, label: 'Preferences' },
+  ];
+
+  const renderProfileTab = () => (
+    <View style={{ gap: theme.spacing[4] }}>
+      <Card>
+        <View style={{ gap: theme.spacing[4] }}>
+          {profileError && (
+            <Banner variant="danger" title="Error" description={profileError} />
+          )}
+          {profileSuccess && (
+            <Banner
+              variant="success"
+              title="Success"
+              description="Profile updated successfully!"
+              onClose={() => setProfileSuccess(false)}
+            />
+          )}
+
+          <View>
+            <Text style={[styles.label, { color: colors.text }]}>First Name *</Text>
+            <Input
+              value={profileForm.firstName}
+              onChangeText={(text) => setProfileForm({ ...profileForm, firstName: text })}
+              placeholder="Enter first name"
+            />
+          </View>
+
+          <View>
+            <Text style={[styles.label, { color: colors.text }]}>Last Name *</Text>
+            <Input
+              value={profileForm.lastName}
+              onChangeText={(text) => setProfileForm({ ...profileForm, lastName: text })}
+              placeholder="Enter last name"
+            />
+          </View>
+
+          <View>
+            <Text style={[styles.label, { color: colors.text }]}>Email Address *</Text>
+            <Input
+              value={profileForm.email}
+              onChangeText={(text) => setProfileForm({ ...profileForm, email: text })}
+              placeholder="Enter email"
+              keyboardType="email-address"
+            />
+          </View>
+
+          <View>
+            <Text style={[styles.label, { color: colors.text }]}>Phone Number</Text>
+            <Input
+              value={profileForm.phone}
+              onChangeText={(text) => setProfileForm({ ...profileForm, phone: text })}
+              placeholder="Enter phone number"
+              keyboardType="phone-pad"
+            />
+          </View>
+
+          <View
+            style={{
+              height: 1,
+              backgroundColor: theme.colors.surface.border,
+              marginVertical: theme.spacing[2],
+            }}
+          />
+
+          <View>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              Professional Information
+            </Text>
+          </View>
+
+          <View>
+            <Text style={[styles.label, { color: colors.text }]}>Credentials</Text>
+            <Input
+              value={profileForm.credentials}
+              onChangeText={(text) => setProfileForm({ ...profileForm, credentials: text })}
+              placeholder="e.g., MD, FACP"
+            />
+          </View>
+
+          <View>
+            <Text style={[styles.label, { color: colors.text }]}>Specialization</Text>
+            <Input
+              value={profileForm.specialization}
+              onChangeText={(text) => setProfileForm({ ...profileForm, specialization: text })}
+              placeholder="e.g., Internal Medicine"
+            />
+          </View>
+
+          <View>
+            <Text style={[styles.label, { color: colors.text }]}>License Number</Text>
+            <Input
+              value={profileForm.licenseNumber}
+              onChangeText={(text) => setProfileForm({ ...profileForm, licenseNumber: text })}
+              placeholder="Enter license number"
+            />
+          </View>
+
+          <View>
+            <Text style={[styles.label, { color: colors.text }]}>Professional Bio</Text>
+            <TextArea
+              value={profileForm.bio}
+              onChangeText={(text) => setProfileForm({ ...profileForm, bio: text })}
+              placeholder="Tell us about your professional background..."
+              minHeight={100}
+            />
+          </View>
+
+          <View style={styles.buttonRow}>
+            <View style={{ flex: 1 }}>
+              <Button variant="secondary" onPress={handleResetProfile} disabled={isSavingProfile}>
+                Reset
+              </Button>
+            </View>
+            <View style={{ width: theme.spacing[3] }} />
+            <View style={{ flex: 1 }}>
+              <Button variant="primary" onPress={handleSaveProfile} isLoading={isSavingProfile}>
+                Save Changes
+              </Button>
+            </View>
+          </View>
+        </View>
+      </Card>
+    </View>
   );
 
-  const renderMainScreen = () => (
-    <ScrollView style={styles.container}>
-      <Card style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>Account</Text>
-        <SettingItem
-          icon={User}
-          label="Profile Information"
-          onPress={() => setCurrentScreen('profile')}
-        />
-        <SettingItem
-          icon={Briefcase}
-          label="Professional Credentials"
-          onPress={() => setCurrentScreen('credentials')}
-        />
-        <SettingItem
-          icon={Lock}
-          label="Privacy & Security"
-          onPress={() => setCurrentScreen('security')}
-        />
-      </Card>
+  const renderNotificationsTab = () => (
+    <View style={{ gap: theme.spacing[4] }}>
+      <Card>
+        <View style={{ gap: theme.spacing[4] }}>
+          {notifSuccess && (
+            <Banner
+              variant="success"
+              title="Success"
+              description="Notification preferences saved!"
+              onClose={() => setNotifSuccess(false)}
+            />
+          )}
 
-      <Card style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>Clinical Settings</Text>
-        <SettingItem
-          icon={Bell}
-          label="Patient Alerts"
-          showArrow={false}
-          rightElement={<Switch checked={patientAlerts} onChange={setPatientAlerts} />}
-        />
-        <SettingItem
-          icon={Bell}
-          label="Notification Settings"
-          onPress={() => setCurrentScreen('notifications')}
-        />
-        <SettingItem
-          icon={Info}
-          label="Auto-Sync Patient Data"
-          showArrow={false}
-          rightElement={<Switch checked={autoSync} onChange={setAutoSync} />}
-        />
-      </Card>
+          <View>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              Email Notifications
+            </Text>
+            <View style={{ gap: theme.spacing[3], marginTop: theme.spacing[3] }}>
+              <View style={styles.switchRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.switchLabel, { color: colors.text }]}>
+                    Patient Alerts
+                  </Text>
+                  <Text style={[styles.switchDesc, { color: colors.textSecondary }]}>
+                    Receive alerts about patient status changes
+                  </Text>
+                </View>
+                <Switch
+                  checked={notificationPrefs.emailPatientAlerts}
+                  onChange={(checked) =>
+                    setNotificationPrefs({ ...notificationPrefs, emailPatientAlerts: checked })
+                  }
+                />
+              </View>
 
-      <Card style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>Compliance</Text>
-        <SettingItem
-          icon={Shield}
-          label="HIPAA Mode"
-          showArrow={false}
-          rightElement={<Switch checked={hipaaMode} onChange={setHipaaMode} />}
-        />
-        <SettingItem
-          icon={Info}
-          label="Compliance Documentation"
-          onPress={() => router.push('/(clinician)/legal/hipaa')}
-        />
-        <SettingItem
-          icon={Lock}
-          label="Privacy Policy"
-          onPress={() => router.push('/(clinician)/legal/privacy')}
-        />
-      </Card>
+              <View style={styles.switchRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.switchLabel, { color: colors.text }]}>
+                    Appointment Updates
+                  </Text>
+                  <Text style={[styles.switchDesc, { color: colors.textSecondary }]}>
+                    Notifications about appointment changes
+                  </Text>
+                </View>
+                <Switch
+                  checked={notificationPrefs.emailAppointments}
+                  onChange={(checked) =>
+                    setNotificationPrefs({ ...notificationPrefs, emailAppointments: checked })
+                  }
+                />
+              </View>
 
-      <Card style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>Preferences</Text>
-        <SettingItem
-          icon={Info}
-          label="App Preferences"
-          onPress={() => setCurrentScreen('preferences')}
-        />
-      </Card>
+              <View style={styles.switchRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.switchLabel, { color: colors.text }]}>
+                    Critical Alerts
+                  </Text>
+                  <Text style={[styles.switchDesc, { color: colors.textSecondary }]}>
+                    Urgent medical alerts requiring immediate attention
+                  </Text>
+                </View>
+                <Switch
+                  checked={notificationPrefs.emailCritical}
+                  onChange={(checked) =>
+                    setNotificationPrefs({ ...notificationPrefs, emailCritical: checked })
+                  }
+                />
+              </View>
 
-      <Card style={styles.section}>
-        <SettingItem icon={LogOut} label="Sign Out" onPress={handleSignOut} showArrow={false} />
+              <View style={styles.switchRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.switchLabel, { color: colors.text }]}>System Updates</Text>
+                  <Text style={[styles.switchDesc, { color: colors.textSecondary }]}>
+                    Platform announcements and updates
+                  </Text>
+                </View>
+                <Switch
+                  checked={notificationPrefs.emailSystem}
+                  onChange={(checked) =>
+                    setNotificationPrefs({ ...notificationPrefs, emailSystem: checked })
+                  }
+                />
+              </View>
+            </View>
+          </View>
+
+          <View
+            style={{
+              height: 1,
+              backgroundColor: theme.colors.surface.border,
+              marginVertical: theme.spacing[2],
+            }}
+          />
+
+          <View>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              Push Notifications
+            </Text>
+            <View style={{ gap: theme.spacing[3], marginTop: theme.spacing[3] }}>
+              <View style={styles.switchRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.switchLabel, { color: colors.text }]}>
+                    Critical Patient Alerts
+                  </Text>
+                  <Text style={[styles.switchDesc, { color: colors.textSecondary }]}>
+                    Urgent alerts requiring immediate attention
+                  </Text>
+                </View>
+                <Switch
+                  checked={notificationPrefs.pushCritical}
+                  onChange={(checked) =>
+                    setNotificationPrefs({ ...notificationPrefs, pushCritical: checked })
+                  }
+                />
+              </View>
+
+              <View style={styles.switchRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.switchLabel, { color: colors.text }]}>
+                    Appointment Changes
+                  </Text>
+                  <Text style={[styles.switchDesc, { color: colors.textSecondary }]}>
+                    Updates to scheduled appointments
+                  </Text>
+                </View>
+                <Switch
+                  checked={notificationPrefs.pushAppointments}
+                  onChange={(checked) =>
+                    setNotificationPrefs({ ...notificationPrefs, pushAppointments: checked })
+                  }
+                />
+              </View>
+
+              <View style={styles.switchRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.switchLabel, { color: colors.text }]}>New Messages</Text>
+                  <Text style={[styles.switchDesc, { color: colors.textSecondary }]}>
+                    Messages from patients or team members
+                  </Text>
+                </View>
+                <Switch
+                  checked={notificationPrefs.pushMessages}
+                  onChange={(checked) =>
+                    setNotificationPrefs({ ...notificationPrefs, pushMessages: checked })
+                  }
+                />
+              </View>
+            </View>
+          </View>
+
+          <Button
+            variant="primary"
+            onPress={handleSaveNotifications}
+            isLoading={isSavingNotif}
+          >
+            Save Notification Preferences
+          </Button>
+        </View>
       </Card>
-    </ScrollView>
+    </View>
   );
 
-  const renderProfileScreen = () => (
-    <ScrollView style={styles.container}>
-      <Card style={styles.formCard}>
-        <Text style={[styles.formTitle, { color: colors.text }]}>Profile Information</Text>
+  const renderSecurityTab = () => (
+    <View style={{ gap: theme.spacing[4] }}>
+      <Card>
+        <View style={{ gap: theme.spacing[4] }}>
+          <Text style={[styles.cardTitle, { color: colors.text }]}>Change Password</Text>
 
-        {profileError && <Banner variant="danger" title="Error" description={profileError} />}
-        {profileSuccess && (
-          <Banner
-            variant="success"
-            title="Success"
-            description="Profile updated successfully!"
-            onClose={() => setProfileSuccess(false)}
-          />
-        )}
+          {securityError && (
+            <Banner variant="danger" title="Error" description={securityError} />
+          )}
+          {securitySuccess && (
+            <Banner
+              variant="success"
+              title="Success"
+              description="Password updated successfully!"
+              onClose={() => setSecuritySuccess(false)}
+            />
+          )}
 
-        <View style={styles.formField}>
-          <Text style={[styles.fieldLabel, { color: colors.text }]}>First Name *</Text>
-          <Input
-            value={profileForm.firstName}
-            onChangeText={(text) => setProfileForm({ ...profileForm, firstName: text })}
-            placeholder="Enter first name"
-          />
-        </View>
-
-        <View style={styles.formField}>
-          <Text style={[styles.fieldLabel, { color: colors.text }]}>Last Name *</Text>
-          <Input
-            value={profileForm.lastName}
-            onChangeText={(text) => setProfileForm({ ...profileForm, lastName: text })}
-            placeholder="Enter last name"
-          />
-        </View>
-
-        <View style={styles.formField}>
-          <Text style={[styles.fieldLabel, { color: colors.text }]}>Email Address *</Text>
-          <Input
-            value={profileForm.email}
-            onChangeText={(text) => setProfileForm({ ...profileForm, email: text })}
-            placeholder="Enter email"
-            keyboardType="email-address"
-            leftIcon={<Mail size={20} color={colors.textSecondary} />}
-          />
-        </View>
-
-        <View style={styles.formField}>
-          <Text style={[styles.fieldLabel, { color: colors.text }]}>Phone Number</Text>
-          <Input
-            value={profileForm.phone}
-            onChangeText={(text) => setProfileForm({ ...profileForm, phone: text })}
-            placeholder="Enter phone number"
-            keyboardType="phone-pad"
-            leftIcon={<Phone size={20} color={colors.textSecondary} />}
-          />
-        </View>
-
-        <View style={styles.formField}>
-          <Text style={[styles.fieldLabel, { color: colors.text }]}>Professional Bio</Text>
-          <TextArea
-            value={profileForm.bio}
-            onChangeText={(text) => setProfileForm({ ...profileForm, bio: text })}
-            placeholder="Tell us about your professional background..."
-            minHeight={80}
-          />
-        </View>
-
-        <View style={styles.buttonRow}>
-          <View style={{ flex: 1 }}>
-            <Button variant="secondary" onPress={handleResetProfile} disabled={isSavingProfile}>
-              Reset
-            </Button>
+          <View>
+            <Text style={[styles.label, { color: colors.text }]}>Current Password *</Text>
+            <Input
+              value={securityForm.currentPassword}
+              onChangeText={(text) =>
+                setSecurityForm({ ...securityForm, currentPassword: text })
+              }
+              placeholder="Enter current password"
+              secureTextEntry
+            />
           </View>
-          <View style={{ width: 12 }} />
-          <View style={{ flex: 1 }}>
-            <Button variant="primary" onPress={handleSaveProfile} isLoading={isSavingProfile}>
-              Save Changes
-            </Button>
+
+          <View>
+            <Text style={[styles.label, { color: colors.text }]}>New Password *</Text>
+            <Input
+              value={securityForm.newPassword}
+              onChangeText={(text) => setSecurityForm({ ...securityForm, newPassword: text })}
+              placeholder="Enter new password"
+              secureTextEntry
+            />
           </View>
+
+          <View>
+            <Text style={[styles.label, { color: colors.text }]}>Confirm New Password *</Text>
+            <Input
+              value={securityForm.confirmPassword}
+              onChangeText={(text) =>
+                setSecurityForm({ ...securityForm, confirmPassword: text })
+              }
+              placeholder="Confirm new password"
+              secureTextEntry
+            />
+          </View>
+
+          <Button variant="primary" onPress={handleUpdatePassword} isLoading={isSavingSecurity}>
+            Update Password
+          </Button>
         </View>
       </Card>
-    </ScrollView>
-  );
 
-  const renderCredentialsScreen = () => (
-    <ScrollView style={styles.container}>
-      <Card style={styles.formCard}>
-        <Text style={[styles.formTitle, { color: colors.text }]}>Professional Credentials</Text>
+      <Card>
+        <View style={{ gap: theme.spacing[4] }}>
+          <View>
+            <Text style={[styles.cardTitle, { color: colors.text }]}>
+              Two-Factor Authentication
+            </Text>
+            <Text style={[styles.paragraph, { color: colors.textSecondary }]}>
+              Two-factor authentication is not enabled.
+            </Text>
+          </View>
 
-        {credentialsSuccess && (
-          <Banner
-            variant="success"
-            title="Success"
-            description="Credentials updated successfully!"
-            onClose={() => setCredentialsSuccess(false)}
-          />
-        )}
-
-        <View style={styles.formField}>
-          <Text style={[styles.fieldLabel, { color: colors.text }]}>License Number</Text>
-          <Input
-            value={credentialsForm.licenseNumber}
-            onChangeText={(text) =>
-              setCredentialsForm({ ...credentialsForm, licenseNumber: text })
-            }
-            placeholder="Enter license number"
-            leftIcon={<Shield size={20} color={colors.textSecondary} />}
-          />
+          <Button variant="secondary" onPress={() => console.log('Enable 2FA')}>
+            Enable 2FA
+          </Button>
         </View>
-
-        <View style={styles.formField}>
-          <Text style={[styles.fieldLabel, { color: colors.text }]}>Specialty</Text>
-          <Input
-            value={credentialsForm.specialty}
-            onChangeText={(text) => setCredentialsForm({ ...credentialsForm, specialty: text })}
-            placeholder="Enter your specialty"
-            leftIcon={<Briefcase size={20} color={colors.textSecondary} />}
-          />
-        </View>
-
-        <View style={styles.formField}>
-          <Text style={[styles.fieldLabel, { color: colors.text }]}>Institution</Text>
-          <Input
-            value={credentialsForm.institution}
-            onChangeText={(text) =>
-              setCredentialsForm({ ...credentialsForm, institution: text })
-            }
-            placeholder="Enter your institution"
-            leftIcon={<Building size={20} color={colors.textSecondary} />}
-          />
-        </View>
-
-        <View style={styles.formField}>
-          <Text style={[styles.fieldLabel, { color: colors.text }]}>Years of Experience</Text>
-          <Input
-            value={credentialsForm.yearsOfExperience}
-            onChangeText={(text) =>
-              setCredentialsForm({ ...credentialsForm, yearsOfExperience: text })
-            }
-            placeholder="Enter years of experience"
-            keyboardType="numeric"
-          />
-        </View>
-
-        <Button variant="primary" onPress={handleSaveCredentials} isLoading={isSavingCredentials}>
-          Save Credentials
-        </Button>
-      </Card>
-    </ScrollView>
-  );
-
-  const renderSecurityScreen = () => (
-    <ScrollView style={styles.container}>
-      <Card style={styles.formCard}>
-        <Text style={[styles.formTitle, { color: colors.text }]}>Change Password</Text>
-
-        {securityError && <Banner variant="danger" title="Error" description={securityError} />}
-        {securitySuccess && (
-          <Banner
-            variant="success"
-            title="Success"
-            description="Password updated successfully!"
-            onClose={() => setSecuritySuccess(false)}
-          />
-        )}
-
-        <View style={styles.formField}>
-          <Text style={[styles.fieldLabel, { color: colors.text }]}>Current Password *</Text>
-          <Input
-            value={securityForm.currentPassword}
-            onChangeText={(text) => setSecurityForm({ ...securityForm, currentPassword: text })}
-            placeholder="Enter current password"
-            secureTextEntry
-            leftIcon={<Lock size={20} color={colors.textSecondary} />}
-          />
-        </View>
-
-        <View style={styles.formField}>
-          <Text style={[styles.fieldLabel, { color: colors.text }]}>New Password *</Text>
-          <Input
-            value={securityForm.newPassword}
-            onChangeText={(text) => setSecurityForm({ ...securityForm, newPassword: text })}
-            placeholder="Enter new password"
-            secureTextEntry
-            leftIcon={<Lock size={20} color={colors.textSecondary} />}
-          />
-        </View>
-
-        <View style={styles.formField}>
-          <Text style={[styles.fieldLabel, { color: colors.text }]}>Confirm New Password *</Text>
-          <Input
-            value={securityForm.confirmPassword}
-            onChangeText={(text) => setSecurityForm({ ...securityForm, confirmPassword: text })}
-            placeholder="Confirm new password"
-            secureTextEntry
-            leftIcon={<Lock size={20} color={colors.textSecondary} />}
-          />
-        </View>
-
-        <Button variant="primary" onPress={handleUpdatePassword} isLoading={isSavingSecurity}>
-          Update Password
-        </Button>
       </Card>
 
-      <Card style={styles.formCard}>
-        <Text style={[styles.formTitle, { color: colors.text }]}>Two-Factor Authentication</Text>
-        <Text style={[styles.description, { color: colors.textSecondary }]}>
-          Add an extra layer of security to your account with two-factor authentication.
-        </Text>
-        <Button
-          variant="secondary"
-          onPress={() =>
-            Alert.alert('Coming Soon', 'Two-factor authentication will be available soon.')
-          }
-        >
-          Enable 2FA
-        </Button>
-      </Card>
-    </ScrollView>
-  );
+      <Card>
+        <View style={{ gap: theme.spacing[4] }}>
+          <Text style={[styles.cardTitle, { color: colors.text }]}>Active Sessions</Text>
 
-  const renderNotificationsScreen = () => (
-    <ScrollView style={styles.container}>
-      <Card style={styles.formCard}>
-        <Text style={[styles.formTitle, { color: colors.text }]}>Notification Settings</Text>
-
-        {notifSuccess && (
-          <Banner
-            variant="success"
-            title="Success"
-            description="Notification preferences saved!"
-            onClose={() => setNotifSuccess(false)}
-          />
-        )}
-
-        <Text style={[styles.subsectionTitle, { color: colors.text }]}>Email Notifications</Text>
-
-        <View style={styles.switchItem}>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.switchLabel, { color: colors.text }]}>Patient Updates</Text>
-            <Text style={[styles.switchDesc, { color: colors.textSecondary }]}>
-              Receive updates about patient status changes
-            </Text>
-          </View>
-          <Switch
-            checked={notificationPrefs.emailCarePlan}
-            onChange={(checked) =>
-              setNotificationPrefs({ ...notificationPrefs, emailCarePlan: checked })
-            }
-          />
-        </View>
-
-        <View style={styles.switchItem}>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.switchLabel, { color: colors.text }]}>
-              Appointment Notifications
-            </Text>
-            <Text style={[styles.switchDesc, { color: colors.textSecondary }]}>
-              Get notified about upcoming appointments
-            </Text>
-          </View>
-          <Switch
-            checked={notificationPrefs.emailAppointments}
-            onChange={(checked) =>
-              setNotificationPrefs({ ...notificationPrefs, emailAppointments: checked })
-            }
-          />
-        </View>
-
-        <View style={styles.switchItem}>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.switchLabel, { color: colors.text }]}>Critical Alerts</Text>
-            <Text style={[styles.switchDesc, { color: colors.textSecondary }]}>
-              Urgent patient health alerts
-            </Text>
-          </View>
-          <Switch
-            checked={notificationPrefs.emailMedications}
-            onChange={(checked) =>
-              setNotificationPrefs({ ...notificationPrefs, emailMedications: checked })
-            }
-          />
-        </View>
-
-        <View style={[styles.divider, { backgroundColor: colors.border }]} />
-
-        <Text style={[styles.subsectionTitle, { color: colors.text }]}>Push Notifications</Text>
-
-        <View style={styles.switchItem}>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.switchLabel, { color: colors.text }]}>Urgent Patient Alerts</Text>
-            <Text style={[styles.switchDesc, { color: colors.textSecondary }]}>
-              Critical patient status notifications
-            </Text>
-          </View>
-          <Switch
-            checked={notificationPrefs.pushUrgent}
-            onChange={(checked) =>
-              setNotificationPrefs({ ...notificationPrefs, pushUrgent: checked })
-            }
-          />
-        </View>
-
-        <View style={styles.switchItem}>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.switchLabel, { color: colors.text }]}>Schedule Changes</Text>
-            <Text style={[styles.switchDesc, { color: colors.textSecondary }]}>
-              Updates to your schedule or appointments
-            </Text>
-          </View>
-          <Switch
-            checked={notificationPrefs.pushAppointments}
-            onChange={(checked) =>
-              setNotificationPrefs({ ...notificationPrefs, pushAppointments: checked })
-            }
-          />
-        </View>
-
-        <View style={styles.switchItem}>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.switchLabel, { color: colors.text }]}>Team Messages</Text>
-            <Text style={[styles.switchDesc, { color: colors.textSecondary }]}>
-              Messages from other care team members
-            </Text>
-          </View>
-          <Switch
-            checked={notificationPrefs.pushMessages}
-            onChange={(checked) =>
-              setNotificationPrefs({ ...notificationPrefs, pushMessages: checked })
-            }
-          />
-        </View>
-
-        <Button variant="primary" onPress={handleSaveNotifications} isLoading={isSavingNotif}>
-          Save Preferences
-        </Button>
-      </Card>
-    </ScrollView>
-  );
-
-  const renderPreferencesScreen = () => (
-    <ScrollView style={styles.container}>
-      <Card style={styles.formCard}>
-        <Text style={[styles.formTitle, { color: colors.text }]}>App Preferences</Text>
-
-        {prefsSuccess && (
-          <Banner
-            variant="success"
-            title="Success"
-            description="Preferences saved successfully!"
-            onClose={() => setPrefsSuccess(false)}
-          />
-        )}
-
-        <View style={styles.formField}>
-          <Text style={[styles.fieldLabel, { color: colors.text }]}>Language</Text>
-          <View style={styles.optionsRow}>
-            {['English', 'Spanish', 'French'].map((lang) => (
-              <TouchableOpacity
-                key={lang}
-                onPress={() => setPreferences({ ...preferences, language: lang })}
+          <View style={{ gap: theme.spacing[3] }}>
+            {sessions.map((session) => (
+              <View
+                key={session.id}
                 style={[
-                  styles.optionButton,
+                  styles.sessionRow,
                   {
-                    backgroundColor:
-                      preferences.language === lang ? colors.primary : colors.surface,
-                    borderWidth: 1,
-                    borderColor: preferences.language === lang ? colors.primary : colors.border,
+                    backgroundColor: theme.colors.surface.alt,
+                    padding: theme.spacing[3],
+                    borderRadius: theme.borderRadius.md,
                   },
                 ]}
               >
-                <Text
-                  style={{
-                    color: preferences.language === lang ? '#FFFFFF' : colors.text,
-                    fontSize: 14,
-                    fontWeight: '500',
-                  }}
-                >
-                  {lang}
-                </Text>
-              </TouchableOpacity>
+                <View style={{ flex: 1 }}>
+                  <View style={styles.sessionHeader}>
+                    <Text style={[styles.sessionDevice, { color: colors.text }]}>
+                      {session.device}
+                    </Text>
+                    {session.isCurrent && (
+                      <Badge variant="success" size="sm">
+                        Current
+                      </Badge>
+                    )}
+                  </View>
+                  <View style={styles.sessionMeta}>
+                    <MapPin size={12} color={colors.textSecondary} />
+                    <Text style={[styles.sessionText, { color: colors.textSecondary }]}>
+                      {session.location}
+                    </Text>
+                  </View>
+                  <Text style={[styles.sessionText, { color: colors.textSecondary }]}>
+                    {session.lastActive}
+                  </Text>
+                </View>
+                {!session.isCurrent && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onPress={() => handleRevokeSession(session.id)}
+                    leftIcon={<Trash2 size={16} color={colors.textSecondary} />}
+                  >
+                    Revoke
+                  </Button>
+                )}
+              </View>
             ))}
           </View>
         </View>
-
-        <View style={styles.formField}>
-          <Text style={[styles.fieldLabel, { color: colors.text }]}>Time Zone</Text>
-          <View style={styles.optionsRow}>
-            {['ET', 'CT', 'MT', 'PT'].map((tz) => (
-              <TouchableOpacity
-                key={tz}
-                onPress={() => setPreferences({ ...preferences, timezone: tz })}
-                style={[
-                  styles.optionButton,
-                  {
-                    backgroundColor:
-                      preferences.timezone === tz ? colors.primary : colors.surface,
-                    borderWidth: 1,
-                    borderColor: preferences.timezone === tz ? colors.primary : colors.border,
-                  },
-                ]}
-              >
-                <Text
-                  style={{
-                    color: preferences.timezone === tz ? '#FFFFFF' : colors.text,
-                    fontSize: 14,
-                    fontWeight: '500',
-                  }}
-                >
-                  {tz}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-
-        <View style={[styles.divider, { backgroundColor: colors.border }]} />
-
-        <View style={styles.switchItem}>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.switchLabel, { color: colors.text }]}>Show Tips and Guidance</Text>
-            <Text style={[styles.switchDesc, { color: colors.textSecondary }]}>
-              Display helpful tips throughout the app
-            </Text>
-          </View>
-          <Switch
-            checked={preferences.showTips}
-            onChange={(checked) => setPreferences({ ...preferences, showTips: checked })}
-          />
-        </View>
-
-        <View style={styles.switchItem}>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.switchLabel, { color: colors.text }]}>Auto-Save Drafts</Text>
-            <Text style={[styles.switchDesc, { color: colors.textSecondary }]}>
-              Automatically save your work in progress
-            </Text>
-          </View>
-          <Switch
-            checked={preferences.autoSave}
-            onChange={(checked) => setPreferences({ ...preferences, autoSave: checked })}
-          />
-        </View>
-
-        <Button variant="primary" onPress={handleSavePreferences} isLoading={isSavingPrefs}>
-          Save Preferences
-        </Button>
       </Card>
-    </ScrollView>
+    </View>
   );
 
-  const getTitle = () => {
-    switch (currentScreen) {
-      case 'profile':
-        return 'Profile';
-      case 'credentials':
-        return 'Credentials';
-      case 'security':
-        return 'Security';
-      case 'notifications':
-        return 'Notifications';
-      case 'preferences':
-        return 'Preferences';
-      default:
-        return 'Settings';
-    }
-  };
+  const renderPreferencesTab = () => (
+    <View style={{ gap: theme.spacing[4] }}>
+      <Card>
+        <View style={{ gap: theme.spacing[4] }}>
+          {prefsSuccess && (
+            <Banner
+              variant="success"
+              title="Success"
+              description="Preferences saved successfully!"
+              onClose={() => setPrefsSuccess(false)}
+            />
+          )}
+
+          <View>
+            <Text style={[styles.label, { color: colors.text }]}>Language</Text>
+            <View style={styles.optionsRow}>
+              {['English', 'Spanish', 'French'].map((lang) => (
+                <TouchableOpacity
+                  key={lang}
+                  onPress={() => setPreferences({ ...preferences, language: lang })}
+                  style={[
+                    styles.optionButton,
+                    {
+                      backgroundColor:
+                        preferences.language === lang
+                          ? theme.colors.primary.bg
+                          : theme.colors.surface.alt,
+                      borderWidth: 1,
+                      borderColor:
+                        preferences.language === lang
+                          ? theme.colors.primary.border
+                          : theme.colors.surface.border,
+                      paddingVertical: theme.spacing[2],
+                      paddingHorizontal: theme.spacing[4],
+                      borderRadius: theme.borderRadius.md,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={{
+                      color:
+                        preferences.language === lang
+                          ? theme.colors.surface.bg
+                          : theme.colors.text.primary,
+                      fontSize: theme.typography.fontSize.sm,
+                      fontFamily: theme.typography.fontFamily.medium,
+                    }}
+                  >
+                    {lang}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          <View>
+            <Text style={[styles.label, { color: colors.text }]}>Time Zone</Text>
+            <View style={styles.optionsRow}>
+              {['ET', 'CT', 'MT', 'PT'].map((tz) => (
+                <TouchableOpacity
+                  key={tz}
+                  onPress={() => setPreferences({ ...preferences, timezone: tz })}
+                  style={[
+                    styles.optionButton,
+                    {
+                      backgroundColor:
+                        preferences.timezone === tz
+                          ? theme.colors.primary.bg
+                          : theme.colors.surface.alt,
+                      borderWidth: 1,
+                      borderColor:
+                        preferences.timezone === tz
+                          ? theme.colors.primary.border
+                          : theme.colors.surface.border,
+                      paddingVertical: theme.spacing[2],
+                      paddingHorizontal: theme.spacing[4],
+                      borderRadius: theme.borderRadius.md,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={{
+                      color:
+                        preferences.timezone === tz
+                          ? theme.colors.surface.bg
+                          : theme.colors.text.primary,
+                      fontSize: theme.typography.fontSize.sm,
+                      fontFamily: theme.typography.fontFamily.medium,
+                    }}
+                  >
+                    {tz}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          <View>
+            <Text style={[styles.label, { color: colors.text }]}>Date Format</Text>
+            <View style={styles.optionsRow}>
+              {['MM/DD/YYYY', 'DD/MM/YYYY', 'YYYY-MM-DD'].map((fmt) => (
+                <TouchableOpacity
+                  key={fmt}
+                  onPress={() => setPreferences({ ...preferences, dateFormat: fmt })}
+                  style={[
+                    styles.optionButton,
+                    {
+                      backgroundColor:
+                        preferences.dateFormat === fmt
+                          ? theme.colors.primary.bg
+                          : theme.colors.surface.alt,
+                      borderWidth: 1,
+                      borderColor:
+                        preferences.dateFormat === fmt
+                          ? theme.colors.primary.border
+                          : theme.colors.surface.border,
+                      paddingVertical: theme.spacing[2],
+                      paddingHorizontal: theme.spacing[3],
+                      borderRadius: theme.borderRadius.md,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={{
+                      color:
+                        preferences.dateFormat === fmt
+                          ? theme.colors.surface.bg
+                          : theme.colors.text.primary,
+                      fontSize: theme.typography.fontSize.sm,
+                      fontFamily: theme.typography.fontFamily.medium,
+                    }}
+                  >
+                    {fmt}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          <View
+            style={{
+              height: 1,
+              backgroundColor: theme.colors.surface.border,
+              marginVertical: theme.spacing[2],
+            }}
+          />
+
+          <View>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Clinical Settings</Text>
+            <View style={{ gap: theme.spacing[3], marginTop: theme.spacing[3] }}>
+              <View style={styles.switchRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.switchLabel, { color: colors.text }]}>
+                    Auto-Sync Patient Data
+                  </Text>
+                  <Text style={[styles.switchDesc, { color: colors.textSecondary }]}>
+                    Automatically sync patient data in real-time
+                  </Text>
+                </View>
+                <Switch
+                  checked={preferences.autoSync}
+                  onChange={(checked) =>
+                    setPreferences({ ...preferences, autoSync: checked })
+                  }
+                />
+              </View>
+
+              <View style={styles.switchRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.switchLabel, { color: colors.text }]}>HIPAA Mode</Text>
+                  <Text style={[styles.switchDesc, { color: colors.textSecondary }]}>
+                    Enable enhanced security and compliance features
+                  </Text>
+                </View>
+                <Switch
+                  checked={preferences.hipaaMode}
+                  onChange={(checked) =>
+                    setPreferences({ ...preferences, hipaaMode: checked })
+                  }
+                />
+              </View>
+            </View>
+          </View>
+
+          <View
+            style={{
+              height: 1,
+              backgroundColor: theme.colors.surface.border,
+              marginVertical: theme.spacing[2],
+            }}
+          />
+
+          <View>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>App Behavior</Text>
+            <View style={{ gap: theme.spacing[3], marginTop: theme.spacing[3] }}>
+              <View style={styles.switchRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.switchLabel, { color: colors.text }]}>
+                    Show Tips and Guidance
+                  </Text>
+                  <Text style={[styles.switchDesc, { color: colors.textSecondary }]}>
+                    Display helpful tips throughout the app
+                  </Text>
+                </View>
+                <Switch
+                  checked={preferences.showTips}
+                  onChange={(checked) =>
+                    setPreferences({ ...preferences, showTips: checked })
+                  }
+                />
+              </View>
+
+              <View style={styles.switchRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.switchLabel, { color: colors.text }]}>Auto-Save Drafts</Text>
+                  <Text style={[styles.switchDesc, { color: colors.textSecondary }]}>
+                    Automatically save your work in progress
+                  </Text>
+                </View>
+                <Switch
+                  checked={preferences.autoSave}
+                  onChange={(checked) =>
+                    setPreferences({ ...preferences, autoSave: checked })
+                  }
+                />
+              </View>
+            </View>
+          </View>
+
+          <Button variant="primary" onPress={handleSavePreferences} isLoading={isSavingPrefs}>
+            Save Preferences
+          </Button>
+        </View>
+      </Card>
+    </View>
+  );
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <TopBar
-        title={getTitle()}
-        showBack={currentScreen !== 'main'}
-        onBackPress={() => setCurrentScreen('main')}
-      />
-      {currentScreen === 'main' && renderMainScreen()}
-      {currentScreen === 'profile' && renderProfileScreen()}
-      {currentScreen === 'credentials' && renderCredentialsScreen()}
-      {currentScreen === 'security' && renderSecurityScreen()}
-      {currentScreen === 'notifications' && renderNotificationsScreen()}
-      {currentScreen === 'preferences' && renderPreferencesScreen()}
+    <View
+      testID="screen-clinician-settings"
+      style={[styles.container, { backgroundColor: colors.background }]}
+    >
+      <TopBar title="Settings" showBack />
+
+      <SafeAreaView style={{ flex: 1 }}>
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={{ padding: theme.spacing[4] }}
+        >
+          <View style={{ gap: theme.spacing[4] }}>
+            <Card>
+              <View style={styles.headerRow}>
+                <View
+                  style={[
+                    styles.avatarContainer,
+                    {
+                      backgroundColor: theme.colors.primary.bg,
+                      width: 48,
+                      height: 48,
+                      borderRadius: 24,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    },
+                  ]}
+                >
+                  <Text
+                    style={{
+                      color: theme.colors.surface.bg,
+                      fontSize: 20,
+                      fontWeight: '700',
+                    }}
+                  >
+                    DC
+                  </Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.userName, { color: colors.text }]}>Demo Clinician</Text>
+                  <Text style={[styles.userEmail, { color: colors.textSecondary }]}>
+                    clinician@wellquestpro.com
+                  </Text>
+                </View>
+              </View>
+              <Text style={[styles.headerDesc, { color: colors.textSecondary }]}>
+                Manage your professional profile, notifications, security, and clinical preferences.
+              </Text>
+            </Card>
+
+            <Tabs tabs={tabs} activeKey={activeTab} onChange={(key) => setActiveTab(key as TabKey)} />
+
+            {activeTab === 'profile' && renderProfileTab()}
+            {activeTab === 'notifications' && renderNotificationsTab()}
+            {activeTab === 'security' && renderSecurityTab()}
+            {activeTab === 'preferences' && renderPreferencesTab()}
+          </View>
+        </ScrollView>
+      </SafeAreaView>
     </View>
   );
 }
@@ -715,75 +963,54 @@ export default function ClinicianSettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
   },
-  section: {
-    marginBottom: 16,
-    padding: 0,
+  scrollView: {
+    flex: 1,
   },
-  sectionTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 8,
-    opacity: 0.7,
-  },
-  settingItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-  },
-  settingLeft: {
+  headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    flex: 1,
+    marginBottom: 12,
   },
-  settingLabel: {
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  formCard: {
-    marginBottom: 16,
-    padding: 16,
-    gap: 16,
-  },
-  formTitle: {
-    fontSize: 20,
+  avatarContainer: {},
+  userName: {
+    fontSize: 18,
     fontWeight: '700',
   },
-  description: {
+  userEmail: {
+    fontSize: 14,
+    marginTop: 2,
+  },
+  headerDesc: {
     fontSize: 14,
     lineHeight: 20,
   },
-  formField: {
-    gap: 8,
-  },
-  fieldLabel: {
+  label: {
     fontSize: 14,
     fontWeight: '600',
+    marginBottom: 8,
   },
   buttonRow: {
     flexDirection: 'row',
-    marginTop: 8,
   },
-  subsectionTitle: {
+  sectionTitle: {
     fontSize: 16,
     fontWeight: '700',
-    marginTop: 8,
   },
-  switchItem: {
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  paragraph: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  switchRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 12,
-    paddingVertical: 8,
   },
   switchLabel: {
     fontSize: 15,
@@ -793,18 +1020,33 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginTop: 2,
   },
-  divider: {
-    height: 1,
-    marginVertical: 8,
+  sessionRow: {
+    gap: 12,
+  },
+  sessionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 4,
+  },
+  sessionDevice: {
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  sessionMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 2,
+  },
+  sessionText: {
+    fontSize: 13,
   },
   optionsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
+    marginTop: 8,
   },
-  optionButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-  },
+  optionButton: {},
 });
