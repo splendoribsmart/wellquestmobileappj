@@ -1,49 +1,848 @@
-import { View, Text, StyleSheet } from 'react-native';
+import { useState, useMemo } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  FlatList,
+} from 'react-native';
 import { useTheme } from '@theme/index';
 import { getThemeColors } from '@utils/themeHelpers';
 import { TopBar } from '@components/layout/TopBar';
 import { DrawerActions } from '@react-navigation/native';
 import { useNavigation } from 'expo-router';
+import {
+  Button,
+  Card,
+  Input,
+  Badge,
+  EmptyState,
+  Modal,
+} from '@components/ui';
+import {
+  Search,
+  FileText,
+  BarChart3,
+  Activity,
+  AlertTriangle,
+  Users,
+  Download,
+  Eye,
+  RefreshCw,
+  Calendar,
+} from 'lucide-react-native';
+import { Picker } from '@react-native-picker/picker';
+
+type ReportType =
+  | 'patient_summary'
+  | 'care_plan_progress'
+  | 'medication_adherence'
+  | 'outcome_analysis'
+  | 'quality_metrics';
+
+type ReportStatus = 'completed' | 'generating' | 'failed';
+
+interface Report {
+  id: string;
+  name: string;
+  type: ReportType;
+  description: string;
+  dateGenerated: string;
+  generatedBy: string;
+  status: ReportStatus;
+  fileSize: string;
+  patientCount: number;
+  timeRange: string;
+}
+
+const REPORT_TYPE_LABELS: Record<ReportType, string> = {
+  patient_summary: 'Patient Summary',
+  care_plan_progress: 'Care Plan Progress',
+  medication_adherence: 'Medication Adherence',
+  outcome_analysis: 'Outcome Analysis',
+  quality_metrics: 'Quality Metrics',
+};
+
+const INITIAL_REPORTS: Report[] = [
+  {
+    id: '1',
+    name: 'Monthly Patient Summary - January 2025',
+    type: 'patient_summary',
+    description: 'Comprehensive overview of all active patients',
+    dateGenerated: '2025-01-15T10:30:00Z',
+    generatedBy: 'Dr. Sarah Chen',
+    status: 'completed',
+    fileSize: '2.4 MB',
+    patientCount: 156,
+    timeRange: 'Last 30 days',
+  },
+  {
+    id: '2',
+    name: 'Q4 Care Plan Progress Report',
+    type: 'care_plan_progress',
+    description: 'Progress tracking for all active care plans',
+    dateGenerated: '2025-01-14T14:20:00Z',
+    generatedBy: 'Dr. Michael Torres',
+    status: 'completed',
+    fileSize: '1.8 MB',
+    patientCount: 89,
+    timeRange: 'Last 90 days',
+  },
+  {
+    id: '3',
+    name: 'Weekly Medication Adherence Analysis',
+    type: 'medication_adherence',
+    description: 'Medication compliance rates and trends',
+    dateGenerated: '2025-01-16T09:00:00Z',
+    generatedBy: 'Dr. Sarah Chen',
+    status: 'generating',
+    fileSize: '',
+    patientCount: 124,
+    timeRange: 'Last 7 days',
+  },
+  {
+    id: '4',
+    name: 'Patient Outcomes - High Risk Group',
+    type: 'outcome_analysis',
+    description: 'Outcome metrics for high-risk patient cohort',
+    dateGenerated: '2025-01-13T16:45:00Z',
+    generatedBy: 'Dr. Emily Rodriguez',
+    status: 'failed',
+    fileSize: '',
+    patientCount: 42,
+    timeRange: 'Last 60 days',
+  },
+  {
+    id: '5',
+    name: 'Quality Metrics Dashboard - December',
+    type: 'quality_metrics',
+    description: 'Practice-wide quality indicators and benchmarks',
+    dateGenerated: '2025-01-10T11:15:00Z',
+    generatedBy: 'Dr. Michael Torres',
+    status: 'completed',
+    fileSize: '3.1 MB',
+    patientCount: 203,
+    timeRange: 'Last 30 days',
+  },
+  {
+    id: '6',
+    name: 'Care Plan Effectiveness Study',
+    type: 'care_plan_progress',
+    description: 'Analysis of care plan outcomes and effectiveness',
+    dateGenerated: '2025-01-08T13:30:00Z',
+    generatedBy: 'Dr. Sarah Chen',
+    status: 'completed',
+    fileSize: '2.7 MB',
+    patientCount: 78,
+    timeRange: 'Last 180 days',
+  },
+];
 
 export default function ReportsScreen() {
   const { theme } = useTheme();
   const colors = getThemeColors(theme);
   const navigation = useNavigation();
 
+  const [reports, setReports] = useState<Report[]>(INITIAL_REPORTS);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [typeFilter, setTypeFilter] = useState<'all' | ReportType>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | ReportStatus>('all');
+  const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  const [reportConfig, setReportConfig] = useState({
+    name: '',
+    type: '' as ReportType | '',
+    startDate: '',
+    endDate: '',
+    patientScope: 'all' as 'all' | 'active' | 'high_risk',
+  });
+
   const handleMenuPress = () => {
     navigation.dispatch(DrawerActions.openDrawer());
   };
 
+  const filteredReports = useMemo(() => {
+    return reports.filter((report) => {
+      const matchesSearch =
+        !searchTerm ||
+        report.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        report.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        report.generatedBy.toLowerCase().includes(searchTerm.toLowerCase());
+
+      const matchesType = typeFilter === 'all' || report.type === typeFilter;
+      const matchesStatus = statusFilter === 'all' || report.status === statusFilter;
+
+      return matchesSearch && matchesType && matchesStatus;
+    });
+  }, [reports, searchTerm, typeFilter, statusFilter]);
+
+  const stats = useMemo(() => {
+    return {
+      total: filteredReports.length,
+      completed: filteredReports.filter((r) => r.status === 'completed').length,
+      generating: filteredReports.filter((r) => r.status === 'generating').length,
+      failed: filteredReports.filter((r) => r.status === 'failed').length,
+    };
+  }, [filteredReports]);
+
+  const clearFilters = () => {
+    setSearchTerm('');
+    setTypeFilter('all');
+    setStatusFilter('all');
+  };
+
+  const hasActiveFilters = searchTerm !== '' || typeFilter !== 'all' || statusFilter !== 'all';
+
+  const handleGenerateReport = () => {
+    if (
+      !reportConfig.name ||
+      !reportConfig.type ||
+      !reportConfig.startDate ||
+      !reportConfig.endDate
+    ) {
+      console.warn('Please fill in all required fields');
+      return;
+    }
+
+    setIsGenerating(true);
+
+    setTimeout(() => {
+      const newReport: Report = {
+        id: Date.now().toString(),
+        name: reportConfig.name,
+        type: reportConfig.type as ReportType,
+        description: `Generated report for ${reportConfig.patientScope} patients`,
+        dateGenerated: new Date().toISOString(),
+        generatedBy: 'Dr. Sarah Chen',
+        status: 'generating',
+        fileSize: '',
+        patientCount: reportConfig.patientScope === 'all' ? 156 : reportConfig.patientScope === 'active' ? 120 : 42,
+        timeRange: `${reportConfig.startDate} to ${reportConfig.endDate}`,
+      };
+
+      setReports([newReport, ...reports]);
+      setIsGenerating(false);
+      setIsGenerateModalOpen(false);
+      setReportConfig({
+        name: '',
+        type: '',
+        startDate: '',
+        endDate: '',
+        patientScope: 'all',
+      });
+    }, 1000);
+  };
+
+  const formatDate = (isoString: string): string => {
+    const date = new Date(isoString);
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
+  const getStatusBadgeVariant = (status: ReportStatus): 'success' | 'warning' | 'danger' => {
+    switch (status) {
+      case 'completed':
+        return 'success';
+      case 'generating':
+        return 'warning';
+      case 'failed':
+        return 'danger';
+    }
+  };
+
+  const renderReportItem = ({ item }: { item: Report }) => (
+    <TouchableOpacity
+      testID={`reports-item-${item.id}`}
+      activeOpacity={0.7}
+      style={{ marginBottom: theme.spacing[2] }}
+    >
+      <Card variant="elevated">
+        <View style={{ gap: theme.spacing[2] }}>
+          <View
+            style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'flex-start',
+            }}
+          >
+            <Text
+              style={{
+                fontSize: theme.typography.fontSize.base,
+                fontFamily: theme.typography.fontFamily.semibold,
+                color: theme.colors.text.primary,
+                flex: 1,
+                marginRight: theme.spacing[2],
+              }}
+            >
+              {item.name}
+            </Text>
+            <Badge variant={getStatusBadgeVariant(item.status)} size="sm">
+              {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
+            </Badge>
+          </View>
+
+          <View style={{ gap: theme.spacing[1] }}>
+            <Badge variant="info" size="sm">
+              {REPORT_TYPE_LABELS[item.type]}
+            </Badge>
+            <Text
+              style={{
+                fontSize: theme.typography.fontSize.xs,
+                color: theme.colors.text.muted,
+              }}
+            >
+              {formatDate(item.dateGenerated)}
+            </Text>
+            <Text
+              style={{
+                fontSize: theme.typography.fontSize.xs,
+                color: theme.colors.text.muted,
+              }}
+            >
+              Generated by {item.generatedBy}
+            </Text>
+          </View>
+
+          <View
+            style={{
+              flexDirection: 'row',
+              gap: theme.spacing[3],
+              alignItems: 'center',
+            }}
+          >
+            <View style={{ flexDirection: 'row', gap: theme.spacing[1], alignItems: 'center' }}>
+              <Users size={14} color={theme.colors.text.muted} />
+              <Text
+                style={{
+                  fontSize: theme.typography.fontSize.xs,
+                  color: theme.colors.text.muted,
+                }}
+              >
+                {item.patientCount} patients
+              </Text>
+            </View>
+            <View style={{ flexDirection: 'row', gap: theme.spacing[1], alignItems: 'center' }}>
+              <Calendar size={14} color={theme.colors.text.muted} />
+              <Text
+                style={{
+                  fontSize: theme.typography.fontSize.xs,
+                  color: theme.colors.text.muted,
+                }}
+              >
+                {item.timeRange}
+              </Text>
+            </View>
+          </View>
+
+          {item.status === 'completed' && (
+            <View style={{ flexDirection: 'row', gap: theme.spacing[2], marginTop: theme.spacing[1] }}>
+              <TouchableOpacity
+                onPress={() => console.log('view report', item.id)}
+                style={{
+                  flex: 1,
+                  paddingVertical: theme.spacing[2],
+                  paddingHorizontal: theme.spacing[3],
+                  backgroundColor: theme.colors.primary.bg,
+                  borderRadius: theme.borderRadius.md,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: theme.spacing[1],
+                }}
+              >
+                <Eye size={16} color={theme.colors.primary.fg} />
+                <Text
+                  style={{
+                    fontSize: theme.typography.fontSize.sm,
+                    fontFamily: theme.typography.fontFamily.semibold,
+                    color: theme.colors.primary.fg,
+                  }}
+                >
+                  View
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => console.log('download report', item.id)}
+                style={{
+                  paddingVertical: theme.spacing[2],
+                  paddingHorizontal: theme.spacing[3],
+                  backgroundColor: theme.colors.surface.bg,
+                  borderRadius: theme.borderRadius.md,
+                  borderWidth: theme.borderWidth.thin,
+                  borderColor: theme.colors.surface.border,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: theme.spacing[1],
+                }}
+              >
+                <Download size={16} color={theme.colors.text.primary} />
+                <Text
+                  style={{
+                    fontSize: theme.typography.fontSize.sm,
+                    fontFamily: theme.typography.fontFamily.semibold,
+                    color: theme.colors.text.primary,
+                  }}
+                >
+                  Download
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {item.status === 'failed' && (
+            <View style={{ marginTop: theme.spacing[1] }}>
+              <TouchableOpacity
+                onPress={() => console.log('retry report', item.id)}
+                style={{
+                  paddingVertical: theme.spacing[2],
+                  paddingHorizontal: theme.spacing[3],
+                  backgroundColor: theme.colors.surface.bg,
+                  borderRadius: theme.borderRadius.md,
+                  borderWidth: theme.borderWidth.thin,
+                  borderColor: theme.colors.feedback.danger.border,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: theme.spacing[1],
+                }}
+              >
+                <RefreshCw size={16} color={theme.colors.feedback.danger.bg} />
+                <Text
+                  style={{
+                    fontSize: theme.typography.fontSize.sm,
+                    fontFamily: theme.typography.fontFamily.semibold,
+                    color: theme.colors.feedback.danger.bg,
+                  }}
+                >
+                  Retry
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {item.status === 'generating' && (
+            <View style={{ marginTop: theme.spacing[1] }}>
+              <Badge variant="warning" size="sm">
+                Processing...
+              </Badge>
+            </View>
+          )}
+        </View>
+      </Card>
+    </TouchableOpacity>
+  );
+
   return (
-    <View style={{ flex: 1, backgroundColor: colors.background }}>
+    <View testID="screen-clinician-reports" style={{ flex: 1, backgroundColor: colors.background }}>
       <TopBar title="Reports" onMenuPress={handleMenuPress} />
-      <View
-        testID="screen-clinician-reports"
-        style={[styles.container, { backgroundColor: colors.background }]}
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.scrollContent}>
+        <View style={{ paddingHorizontal: theme.spacing[3], paddingTop: theme.spacing[3] }}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{
+              gap: theme.spacing[3],
+              paddingBottom: theme.spacing[3],
+            }}
+          >
+            <View style={styles.statCard}>
+              <FileText size={20} color={theme.colors.primary.bg} style={{ marginBottom: 8 }} />
+              <Text style={[styles.statLabel, { color: theme.colors.text.muted }]}>
+                Total Reports
+              </Text>
+              <Text style={[styles.statValue, { color: theme.colors.text.primary }]}>
+                {stats.total}
+              </Text>
+            </View>
+
+            <View style={styles.statCard}>
+              <BarChart3
+                size={20}
+                color={theme.colors.feedback.success.bg}
+                style={{ marginBottom: 8 }}
+              />
+              <Text style={[styles.statLabel, { color: theme.colors.text.muted }]}>Completed</Text>
+              <Text style={[styles.statValue, { color: theme.colors.text.primary }]}>
+                {stats.completed}
+              </Text>
+            </View>
+
+            <View style={styles.statCard}>
+              <Activity
+                size={20}
+                color={theme.colors.feedback.warning.bg}
+                style={{ marginBottom: 8 }}
+              />
+              <Text style={[styles.statLabel, { color: theme.colors.text.muted }]}>
+                Generating
+              </Text>
+              <Text style={[styles.statValue, { color: theme.colors.text.primary }]}>
+                {stats.generating}
+              </Text>
+            </View>
+
+            <View style={styles.statCard}>
+              <AlertTriangle
+                size={20}
+                color={theme.colors.feedback.danger.bg}
+                style={{ marginBottom: 8 }}
+              />
+              <Text style={[styles.statLabel, { color: theme.colors.text.muted }]}>Failed</Text>
+              <Text style={[styles.statValue, { color: theme.colors.text.primary }]}>
+                {stats.failed}
+              </Text>
+            </View>
+          </ScrollView>
+        </View>
+
+        <View style={{ paddingHorizontal: theme.spacing[3], marginBottom: theme.spacing[3] }}>
+          <Button
+            onPress={() => setIsGenerateModalOpen(true)}
+            variant="primary"
+            size="md"
+            title="Generate New Report"
+          />
+        </View>
+
+        <View style={{ paddingHorizontal: theme.spacing[3], marginBottom: theme.spacing[3] }}>
+          <Card variant="bordered">
+            <View style={{ gap: theme.spacing[3] }}>
+              <Input
+                value={searchTerm}
+                onChangeText={setSearchTerm}
+                placeholder="Search reports by name or creator..."
+                leftIcon={<Search size={18} color={theme.colors.text.muted} />}
+              />
+
+              <View style={{ gap: theme.spacing[2] }}>
+                <Text
+                  style={{
+                    fontSize: theme.typography.fontSize.sm,
+                    fontFamily: theme.typography.fontFamily.semibold,
+                    color: theme.colors.text.primary,
+                  }}
+                >
+                  Report Type
+                </Text>
+                <View
+                  style={{
+                    borderWidth: theme.borderWidth.thin,
+                    borderColor: theme.colors.surface.border,
+                    borderRadius: theme.borderRadius.md,
+                    overflow: 'hidden',
+                  }}
+                >
+                  <Picker
+                    selectedValue={typeFilter}
+                    onValueChange={(value) => setTypeFilter(value as 'all' | ReportType)}
+                    style={{ height: 50 }}
+                  >
+                    <Picker.Item label="All Types" value="all" />
+                    <Picker.Item label="Patient Summary" value="patient_summary" />
+                    <Picker.Item label="Care Plan Progress" value="care_plan_progress" />
+                    <Picker.Item label="Medication Adherence" value="medication_adherence" />
+                    <Picker.Item label="Outcome Analysis" value="outcome_analysis" />
+                    <Picker.Item label="Quality Metrics" value="quality_metrics" />
+                  </Picker>
+                </View>
+              </View>
+
+              <View style={{ gap: theme.spacing[2] }}>
+                <Text
+                  style={{
+                    fontSize: theme.typography.fontSize.sm,
+                    fontFamily: theme.typography.fontFamily.semibold,
+                    color: theme.colors.text.primary,
+                  }}
+                >
+                  Status
+                </Text>
+                <View
+                  style={{
+                    borderWidth: theme.borderWidth.thin,
+                    borderColor: theme.colors.surface.border,
+                    borderRadius: theme.borderRadius.md,
+                    overflow: 'hidden',
+                  }}
+                >
+                  <Picker
+                    selectedValue={statusFilter}
+                    onValueChange={(value) => setStatusFilter(value as 'all' | ReportStatus)}
+                    style={{ height: 50 }}
+                  >
+                    <Picker.Item label="All Statuses" value="all" />
+                    <Picker.Item label="Completed" value="completed" />
+                    <Picker.Item label="Generating" value="generating" />
+                    <Picker.Item label="Failed" value="failed" />
+                  </Picker>
+                </View>
+              </View>
+
+              {hasActiveFilters && (
+                <View style={{ alignItems: 'flex-end' }}>
+                  <Button onPress={clearFilters} variant="ghost" size="sm" title="Clear Filters" />
+                </View>
+              )}
+            </View>
+          </Card>
+        </View>
+
+        <View style={{ paddingHorizontal: theme.spacing[3], paddingBottom: theme.spacing[3] }}>
+          {filteredReports.length === 0 ? (
+            <Card variant="bordered">
+              <EmptyState
+                title="No reports found"
+                description="Try adjusting your search or filters."
+                actionLabel="Clear Filters"
+                onAction={clearFilters}
+              />
+            </Card>
+          ) : (
+            <FlatList
+              testID="reports-list"
+              data={filteredReports}
+              renderItem={renderReportItem}
+              keyExtractor={(item) => item.id}
+              scrollEnabled={false}
+            />
+          )}
+        </View>
+      </ScrollView>
+
+      <Modal
+        isOpen={isGenerateModalOpen}
+        onClose={() => setIsGenerateModalOpen(false)}
+        title="Generate New Report"
       >
-        <Text style={[styles.title, { color: colors.text }]}>Reports</Text>
-        <Text style={[styles.description, { color: colors.textSecondary }]}>
-          Placeholder screen for reports
-        </Text>
-      </View>
+        <View style={{ gap: theme.spacing[4] }}>
+          <View style={{ gap: theme.spacing[2] }}>
+            <Text
+              style={{
+                fontSize: theme.typography.fontSize.sm,
+                fontFamily: theme.typography.fontFamily.semibold,
+                color: theme.colors.text.primary,
+              }}
+            >
+              Report Name *
+            </Text>
+            <Input
+              value={reportConfig.name}
+              onChangeText={(text) => setReportConfig({ ...reportConfig, name: text })}
+              placeholder="e.g., Monthly Patient Summary"
+            />
+          </View>
+
+          <View style={{ gap: theme.spacing[2] }}>
+            <Text
+              style={{
+                fontSize: theme.typography.fontSize.sm,
+                fontFamily: theme.typography.fontFamily.semibold,
+                color: theme.colors.text.primary,
+              }}
+            >
+              Report Type *
+            </Text>
+            <View
+              style={{
+                borderWidth: theme.borderWidth.thin,
+                borderColor: theme.colors.surface.border,
+                borderRadius: theme.borderRadius.md,
+                overflow: 'hidden',
+              }}
+            >
+              <Picker
+                selectedValue={reportConfig.type}
+                onValueChange={(value) =>
+                  setReportConfig({ ...reportConfig, type: value as ReportType })
+                }
+                style={{ height: 50 }}
+              >
+                <Picker.Item label="Select type..." value="" />
+                <Picker.Item label="Patient Summary" value="patient_summary" />
+                <Picker.Item label="Care Plan Progress" value="care_plan_progress" />
+                <Picker.Item label="Medication Adherence" value="medication_adherence" />
+                <Picker.Item label="Outcome Analysis" value="outcome_analysis" />
+                <Picker.Item label="Quality Metrics" value="quality_metrics" />
+              </Picker>
+            </View>
+          </View>
+
+          <View style={{ gap: theme.spacing[2] }}>
+            <Text
+              style={{
+                fontSize: theme.typography.fontSize.sm,
+                fontFamily: theme.typography.fontFamily.semibold,
+                color: theme.colors.text.primary,
+              }}
+            >
+              Start Date *
+            </Text>
+            <Input
+              value={reportConfig.startDate}
+              onChangeText={(text) => setReportConfig({ ...reportConfig, startDate: text })}
+              placeholder="YYYY-MM-DD"
+            />
+          </View>
+
+          <View style={{ gap: theme.spacing[2] }}>
+            <Text
+              style={{
+                fontSize: theme.typography.fontSize.sm,
+                fontFamily: theme.typography.fontFamily.semibold,
+                color: theme.colors.text.primary,
+              }}
+            >
+              End Date *
+            </Text>
+            <Input
+              value={reportConfig.endDate}
+              onChangeText={(text) => setReportConfig({ ...reportConfig, endDate: text })}
+              placeholder="YYYY-MM-DD"
+            />
+          </View>
+
+          <View style={{ gap: theme.spacing[2] }}>
+            <Text
+              style={{
+                fontSize: theme.typography.fontSize.sm,
+                fontFamily: theme.typography.fontFamily.semibold,
+                color: theme.colors.text.primary,
+              }}
+            >
+              Include Patients
+            </Text>
+            <View
+              style={{
+                borderWidth: theme.borderWidth.thin,
+                borderColor: theme.colors.surface.border,
+                borderRadius: theme.borderRadius.md,
+                overflow: 'hidden',
+              }}
+            >
+              <Picker
+                selectedValue={reportConfig.patientScope}
+                onValueChange={(value) =>
+                  setReportConfig({
+                    ...reportConfig,
+                    patientScope: value as 'all' | 'active' | 'high_risk',
+                  })
+                }
+                style={{ height: 50 }}
+              >
+                <Picker.Item label="All My Patients" value="all" />
+                <Picker.Item label="Active Only" value="active" />
+                <Picker.Item label="High Risk" value="high_risk" />
+              </Picker>
+            </View>
+          </View>
+
+          <Card variant="bordered">
+            <View style={{ gap: theme.spacing[2] }}>
+              <Text
+                style={{
+                  fontSize: theme.typography.fontSize.sm,
+                  fontFamily: theme.typography.fontFamily.semibold,
+                  color: theme.colors.text.primary,
+                }}
+              >
+                Preview
+              </Text>
+              <Text
+                style={{
+                  fontSize: theme.typography.fontSize.sm,
+                  color: theme.colors.text.muted,
+                }}
+              >
+                <Text style={{ fontFamily: theme.typography.fontFamily.semibold }}>
+                  Report Type:{' '}
+                </Text>
+                {reportConfig.type ? REPORT_TYPE_LABELS[reportConfig.type] : 'Not selected'}
+              </Text>
+              <Text
+                style={{
+                  fontSize: theme.typography.fontSize.sm,
+                  color: theme.colors.text.muted,
+                }}
+              >
+                <Text style={{ fontFamily: theme.typography.fontFamily.semibold }}>Period: </Text>
+                {reportConfig.startDate || 'Start'} – {reportConfig.endDate || 'End'}
+              </Text>
+              <Text
+                style={{
+                  fontSize: theme.typography.fontSize.sm,
+                  color: theme.colors.text.muted,
+                }}
+              >
+                <Text style={{ fontFamily: theme.typography.fontFamily.semibold }}>
+                  Patients:{' '}
+                </Text>
+                {reportConfig.patientScope === 'all'
+                  ? 'All My Patients'
+                  : reportConfig.patientScope === 'active'
+                    ? 'Active Only'
+                    : 'High Risk'}
+              </Text>
+            </View>
+          </Card>
+
+          <View style={{ flexDirection: 'row', gap: theme.spacing[2] }}>
+            <View style={{ flex: 1 }}>
+              <Button
+                onPress={() => setIsGenerateModalOpen(false)}
+                variant="outline"
+                size="md"
+                title="Cancel"
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Button
+                onPress={handleGenerateReport}
+                variant="primary"
+                size="md"
+                title="Generate"
+                isLoading={isGenerating}
+                disabled={
+                  !reportConfig.name ||
+                  !reportConfig.type ||
+                  !reportConfig.startDate ||
+                  !reportConfig.endDate
+                }
+              />
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
+  scrollContent: {
+    flexGrow: 1,
   },
-  title: {
-    fontSize: 32,
+  statCard: {
+    minWidth: 120,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  statLabel: {
+    fontSize: 11,
+    marginBottom: 4,
+  },
+  statValue: {
+    fontSize: 20,
     fontWeight: '700',
-    marginBottom: 12,
-  },
-  description: {
-    fontSize: 16,
-    textAlign: 'center',
   },
 });
