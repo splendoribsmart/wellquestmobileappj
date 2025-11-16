@@ -15,7 +15,7 @@ import { TopBar } from '@components/layout/TopBar';
 import { Card, Badge, Button, Input, Switch, EmptyState } from '@components/ui';
 import { useNavigation } from 'expo-router';
 import { DrawerActions } from '@react-navigation/native';
-import { BookOpen, Bookmark, Star, Clock, Eye, X } from 'lucide-react-native';
+import { BookOpen, Bookmark, Star, Clock, Eye, X, Play } from 'lucide-react-native';
 import { Picker } from '@react-native-picker/picker';
 
 interface EducationalContent {
@@ -199,6 +199,17 @@ Portion control matters as much as food quality. Even healthy foods can contribu
 Meal planning and preparation can make healthy eating more convenient and sustainable. Taking time to plan meals, shop with a list, and prepare healthy options in advance reduces reliance on less nutritious convenience foods.
 
 Remember, healthy eating is about progress, not perfection. Small, sustainable changes to your eating habits are more effective long-term than drastic, restrictive diets.`,
+
+    '4': `In this comprehensive video, you'll learn everything you need to know about blood pressure monitoring and management.
+
+What You'll Learn:
+• Understanding systolic and diastolic numbers
+• How to properly measure blood pressure at home
+• Recognizing signs of high blood pressure
+• Lifestyle changes to maintain healthy levels
+• When to seek medical attention
+
+This educational video provides clear, visual explanations of blood pressure concepts, making it easy to understand and apply to your daily health routine. Perfect for beginners looking to take control of their cardiovascular health.`,
   };
 
   return contentMap[id] || `This is the full content for the selected resource. In a real implementation, this would contain comprehensive information about the topic.\n\nThe content would include detailed explanations, practical tips, evidence-based recommendations, and actionable steps you can take to improve your health.\n\nThis placeholder demonstrates how the full article would appear when opened in the modal view. The actual content would be much more extensive and informative, tailored to help you understand and manage your health effectively.\n\nRemember to always consult with your healthcare provider before making significant changes to your health routine or treatment plan.`;
@@ -438,7 +449,9 @@ export default function HealthLibraryScreen() {
       >
         <SafeAreaView style={[styles.modalContainer, { backgroundColor: colors.background }]}>
           <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
-            <Text style={[styles.modalTitle, { color: colors.text }]}>Article Details</Text>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>
+              {selectedContent?.contentType === 'video' ? 'Video Details' : 'Article Details'}
+            </Text>
             <TouchableOpacity onPress={() => setSelectedContent(null)} activeOpacity={0.7}>
               <X size={24} color={colors.text} />
             </TouchableOpacity>
@@ -510,9 +523,39 @@ export default function HealthLibraryScreen() {
 
               <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
-              <Text style={[styles.articleBody, { color: colors.text }]}>
-                {getFullContent(selectedContent.id)}
-              </Text>
+              {selectedContent.contentType === 'video' ? (
+                <View style={styles.videoContainer}>
+                  <View style={[styles.videoPlaceholder, { backgroundColor: colors.border }]}>
+                    <View style={[styles.playButtonContainer, { backgroundColor: colors.primary }]}>
+                      <Play size={48} color="#FFFFFF" fill="#FFFFFF" />
+                    </View>
+                  </View>
+                  <View style={styles.videoControls}>
+                    <View style={styles.videoControlsRow}>
+                      <Text style={[styles.videoControlText, { color: colors.textSecondary }]}>0:00</Text>
+                      <View style={[styles.progressBar, { backgroundColor: colors.border }]}>
+                        <View style={[styles.progressFill, { backgroundColor: colors.primary, width: '0%' }]} />
+                      </View>
+                      <Text style={[styles.videoControlText, { color: colors.textSecondary }]}>
+                        {selectedContent.duration}:00
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={styles.videoDescription}>
+                    <Text style={[styles.videoDescriptionTitle, { color: colors.text }]}>About this video</Text>
+                    <Text style={[styles.videoDescriptionText, { color: colors.textSecondary }]}>
+                      {selectedContent.description}
+                    </Text>
+                    <Text style={[styles.videoDescriptionText, { color: colors.textSecondary, marginTop: 12 }]}>
+                      {getFullContent(selectedContent.id)}
+                    </Text>
+                  </View>
+                </View>
+              ) : (
+                <Text style={[styles.articleBody, { color: colors.text }]}>
+                  {getFullContent(selectedContent.id)}
+                </Text>
+              )}
 
               <View style={styles.modalActions}>
                 <View style={styles.actionButton}>
@@ -714,5 +757,66 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     width: '100%',
+  },
+  videoContainer: {
+    marginBottom: 24,
+  },
+  videoPlaceholder: {
+    width: '100%',
+    aspectRatio: 16 / 9,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
+  playButtonContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 4.65,
+    elevation: 8,
+  },
+  videoControls: {
+    marginTop: 16,
+  },
+  videoControlsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  videoControlText: {
+    fontSize: 12,
+    fontWeight: '500',
+    minWidth: 40,
+  },
+  progressBar: {
+    flex: 1,
+    height: 4,
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 2,
+  },
+  videoDescription: {
+    marginTop: 24,
+  },
+  videoDescriptionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 12,
+  },
+  videoDescriptionText: {
+    fontSize: 15,
+    lineHeight: 22,
   },
 });
