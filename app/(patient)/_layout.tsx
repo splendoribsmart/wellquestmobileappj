@@ -1,6 +1,5 @@
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Drawer } from 'expo-router/drawer';
-import { useRouter } from 'expo-router';
 import { useTheme } from '@theme/index';
 import { getThemeColors } from '@utils/themeHelpers';
 import {
@@ -16,7 +15,6 @@ import {
 export default function PatientLayout() {
   const { theme } = useTheme();
   const colors = getThemeColors(theme);
-  const router = useRouter();
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -61,16 +59,10 @@ export default function PatientLayout() {
           }}
         />
         <Drawer.Screen
-          name="../../(shared)/settings"
+          name="settings"
           options={{
             drawerLabel: 'Settings',
             drawerIcon: ({ color, size }) => <Settings size={size} color={color} />,
-          }}
-          listeners={{
-            drawerItemPress: (e) => {
-              e.preventDefault();
-              router.push('/(shared)/settings');
-            },
           }}
         />
       </Drawer>
