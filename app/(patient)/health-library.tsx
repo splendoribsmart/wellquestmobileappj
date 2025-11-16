@@ -23,7 +23,7 @@ interface EducationalContent {
   title: string;
   description: string;
   category: string;
-  type: 'article' | 'video' | 'guide' | 'infographic';
+  contentType: 'article' | 'video' | 'guide' | 'infographic';
   readTime?: number;
   duration?: number;
   difficulty: 'beginner' | 'intermediate' | 'advanced';
@@ -41,7 +41,7 @@ const INITIAL_CONTENT: EducationalContent[] = [
     title: 'Understanding Your Heart Health',
     description: 'Learn about cardiovascular health, risk factors, and preventive measures to keep your heart healthy.',
     category: 'Cardiovascular',
-    type: 'article',
+    contentType: 'article',
     readTime: 8,
     difficulty: 'beginner',
     tags: ['heart', 'prevention', 'lifestyle'],
@@ -56,7 +56,7 @@ const INITIAL_CONTENT: EducationalContent[] = [
     title: 'Managing Diabetes: A Comprehensive Guide',
     description: 'Complete guide to understanding diabetes management, blood sugar monitoring, and lifestyle adjustments.',
     category: 'Endocrine',
-    type: 'guide',
+    contentType: 'guide',
     readTime: 15,
     difficulty: 'intermediate',
     tags: ['diabetes', 'blood sugar', 'diet'],
@@ -71,7 +71,7 @@ const INITIAL_CONTENT: EducationalContent[] = [
     title: 'Nutrition Basics for Better Health',
     description: 'Essential nutrition information to help you make informed dietary choices for optimal health.',
     category: 'Nutrition',
-    type: 'article',
+    contentType: 'article',
     readTime: 10,
     difficulty: 'beginner',
     tags: ['nutrition', 'diet', 'wellness'],
@@ -86,7 +86,7 @@ const INITIAL_CONTENT: EducationalContent[] = [
     title: 'Understanding Blood Pressure',
     description: 'Learn what blood pressure numbers mean, how to monitor them, and steps to maintain healthy levels.',
     category: 'Cardiovascular',
-    type: 'video',
+    contentType: 'video',
     duration: 12,
     difficulty: 'beginner',
     tags: ['blood pressure', 'monitoring', 'hypertension'],
@@ -101,7 +101,7 @@ const INITIAL_CONTENT: EducationalContent[] = [
     title: 'Medication Management Tips',
     description: 'Best practices for organizing, tracking, and taking your medications safely and effectively.',
     category: 'General Health',
-    type: 'guide',
+    contentType: 'guide',
     readTime: 12,
     difficulty: 'beginner',
     tags: ['medications', 'safety', 'adherence'],
@@ -116,7 +116,7 @@ const INITIAL_CONTENT: EducationalContent[] = [
     title: 'Exercise and Heart Health',
     description: 'Discover the connection between physical activity and cardiovascular wellness with practical exercise tips.',
     category: 'Cardiovascular',
-    type: 'infographic',
+    contentType: 'infographic',
     readTime: 5,
     difficulty: 'beginner',
     tags: ['exercise', 'heart health', 'fitness'],
@@ -131,7 +131,7 @@ const INITIAL_CONTENT: EducationalContent[] = [
     title: 'Mental Health and Chronic Illness',
     description: 'Understanding the emotional impact of chronic conditions and strategies for maintaining mental wellness.',
     category: 'Mental Health',
-    type: 'article',
+    contentType: 'article',
     readTime: 14,
     difficulty: 'intermediate',
     tags: ['mental health', 'coping', 'support'],
@@ -146,7 +146,7 @@ const INITIAL_CONTENT: EducationalContent[] = [
     title: 'Sleep and Health: The Connection',
     description: 'Explore how quality sleep affects your overall health and learn techniques for better rest.',
     category: 'General Health',
-    type: 'article',
+    contentType: 'article',
     readTime: 9,
     difficulty: 'beginner',
     tags: ['sleep', 'rest', 'wellness'],
@@ -212,7 +212,7 @@ export default function HealthLibraryScreen() {
   const [content, setContent] = useState<EducationalContent[]>(INITIAL_CONTENT);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
-  const [selectedType, setSelectedType] = useState('all');
+  const [selectedContentType, setSelectedContentType] = useState('all');
   const [showBookmarkedOnly, setShowBookmarkedOnly] = useState(false);
   const [selectedContent, setSelectedContent] = useState<EducationalContent | null>(null);
 
@@ -231,7 +231,7 @@ export default function HealthLibraryScreen() {
   const resetFilters = () => {
     setSearchTerm('');
     setSelectedCategory('all');
-    setSelectedType('all');
+    setSelectedContentType('all');
     setShowBookmarkedOnly(false);
   };
 
@@ -243,14 +243,14 @@ export default function HealthLibraryScreen() {
       item.tags.some((tag) => tag.toLowerCase().includes(searchTerm.toLowerCase()));
 
     const matchesCategory = selectedCategory === 'all' || item.category === selectedCategory;
-    const matchesType = selectedType === 'all' || item.type === selectedType;
+    const matchesContentType = selectedContentType === 'all' || item.contentType === selectedContentType;
     const matchesBookmark = !showBookmarkedOnly || item.isBookmarked;
 
-    return matchesSearch && matchesCategory && matchesType && matchesBookmark;
+    return matchesSearch && matchesCategory && matchesContentType && matchesBookmark;
   });
 
   const categories = ['all', ...Array.from(new Set(content.map((item) => item.category)))];
-  const types = ['all', 'article', 'video', 'guide', 'infographic'];
+  const contentTypes = ['all', 'article', 'video', 'guide', 'infographic'];
 
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
@@ -265,8 +265,8 @@ export default function HealthLibraryScreen() {
     }
   };
 
-  const getTypeColor = (type: string): 'primary' | 'secondary' | 'success' | 'warning' | 'danger' | 'info' | 'neutral' => {
-    switch (type) {
+  const getTypeColor = (contentType: string): 'primary' | 'secondary' | 'success' | 'warning' | 'danger' | 'info' | 'neutral' => {
+    switch (contentType) {
       case 'article':
         return 'primary';
       case 'video':
@@ -284,8 +284,8 @@ export default function HealthLibraryScreen() {
     <View style={styles.card}>
       <Card>
       <View style={styles.cardHeader}>
-        <Badge variant={getTypeColor(item.type) as any} size="sm">
-          {item.type.toUpperCase()}
+        <Badge variant={getTypeColor(item.contentType) as any} size="sm">
+          {item.contentType.toUpperCase()}
         </Badge>
         <TouchableOpacity onPress={() => toggleBookmark(item.id)} activeOpacity={0.7}>
           <Bookmark
@@ -349,7 +349,7 @@ export default function HealthLibraryScreen() {
           variant="primary"
           size="sm"
         >
-          {item.type === 'video' ? 'Watch Now' : 'Read More'}
+          {item.contentType === 'video' ? 'Watch Now' : 'Read More'}
         </Button>
       </View>
       </Card>
@@ -386,11 +386,11 @@ export default function HealthLibraryScreen() {
           <View style={[styles.pickerContainer, { backgroundColor: theme.colors.surface.alt, borderColor: colors.border }]}>
             <Text style={[styles.pickerLabel, { color: colors.textSecondary }]}>Type</Text>
             <Picker
-              selectedValue={selectedType}
-              onValueChange={setSelectedType}
+              selectedValue={selectedContentType}
+              onValueChange={setSelectedContentType}
               style={[styles.picker, { color: colors.text }]}
             >
-              {types.map((type) => (
+              {contentTypes.map((type) => (
                 <Picker.Item key={type} label={type === 'all' ? 'All Types' : type.charAt(0).toUpperCase() + type.slice(1)} value={type} />
               ))}
             </Picker>
@@ -451,8 +451,8 @@ export default function HealthLibraryScreen() {
               </Text>
 
               <View style={styles.articleMeta}>
-                <Badge variant={getTypeColor(selectedContent.type) as any} size="sm">
-                  {selectedContent.type.toUpperCase()}
+                <Badge variant={getTypeColor(selectedContent.contentType) as any} size="sm">
+                  {selectedContent.contentType.toUpperCase()}
                 </Badge>
                 <View
                   style={[
