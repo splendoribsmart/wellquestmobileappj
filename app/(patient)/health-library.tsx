@@ -276,7 +276,7 @@ export default function HealthLibraryScreen() {
     }
   };
 
-  const getTypeColor = (contentType: string): 'primary' | 'secondary' | 'success' | 'warning' | 'danger' | 'info' | 'neutral' => {
+  const getTypeVariant = (contentType: string): 'primary' | 'secondary' | 'success' | 'warning' | 'danger' | 'info' | 'neutral' => {
     switch (contentType) {
       case 'article':
         return 'primary';
@@ -291,11 +291,10 @@ export default function HealthLibraryScreen() {
     }
   };
 
-  const renderResourceCard = ({ item }: { item: EducationalContent }) => (
-    <View style={styles.card}>
-      <Card>
+  const renderResourceCard = ({ item }: { item: EducationalContent }) => {
+    const cardHeader = (
       <View style={styles.cardHeader}>
-        <Badge variant={getTypeColor(item.contentType) as any} size="sm">
+        <Badge variant={getTypeVariant(item.contentType)} size="sm">
           {item.contentType.toUpperCase()}
         </Badge>
         <TouchableOpacity onPress={() => toggleBookmark(item.id)} activeOpacity={0.7}>
@@ -306,66 +305,71 @@ export default function HealthLibraryScreen() {
           />
         </TouchableOpacity>
       </View>
+    );
 
-      <Text style={[styles.cardTitle, { color: colors.text }]}>{item.title}</Text>
-      <Text style={[styles.cardDescription, { color: colors.textSecondary }]} numberOfLines={2}>
-        {item.description}
-      </Text>
+    const cardFooter = (
+      <Button
+        onPress={() => setSelectedContent(item)}
+        variant="primary"
+        size="sm"
+      >
+        {item.contentType === 'video' ? 'Watch Now' : 'Read More'}
+      </Button>
+    );
 
-      <View style={styles.tagsRow}>
-        {item.tags.slice(0, 3).map((tag, index) => (
-          <Badge key={index} variant="neutral" size="sm">
-            {tag}
-          </Badge>
-        ))}
-      </View>
-
-      <View style={styles.metadataRow}>
-        <View style={styles.metadataItem}>
-          <Clock size={14} color={colors.textSecondary} />
-          <Text style={[styles.metadataText, { color: colors.textSecondary }]}>
-            {item.readTime ? `${item.readTime} min` : `${item.duration} min`}
+    return (
+      <View style={styles.card}>
+        <Card header={cardHeader} footer={cardFooter}>
+          <Text style={[styles.cardTitle, { color: colors.text }]}>{item.title}</Text>
+          <Text style={[styles.cardDescription, { color: colors.textSecondary }]} numberOfLines={2}>
+            {item.description}
           </Text>
-        </View>
 
-        <View style={styles.metadataItem}>
-          <Star size={14} color={theme.colors.feedback.warning.bg} fill={theme.colors.feedback.warning.bg} />
-          <Text style={[styles.metadataText, { color: colors.textSecondary }]}>
-            {item.rating.toFixed(1)}
-          </Text>
-        </View>
-
-        <View style={styles.metadataItem}>
-          <View
-            style={[
-              styles.difficultyBadge,
-              { backgroundColor: getDifficultyColor(item.difficulty) + '20' },
-            ]}
-          >
-            <Text
-              style={[
-                styles.difficultyText,
-                { color: getDifficultyColor(item.difficulty) },
-              ]}
-            >
-              {item.difficulty}
-            </Text>
+          <View style={styles.tagsRow}>
+            {item.tags.slice(0, 3).map((tag, index) => (
+              <Badge key={index} variant="neutral" size="sm">
+                {tag}
+              </Badge>
+            ))}
           </View>
-        </View>
-      </View>
 
-      <View style={styles.cardButton}>
-        <Button
-          onPress={() => setSelectedContent(item)}
-          variant="primary"
-          size="sm"
-        >
-          {item.contentType === 'video' ? 'Watch Now' : 'Read More'}
-        </Button>
+          <View style={styles.metadataRow}>
+            <View style={styles.metadataItem}>
+              <Clock size={14} color={colors.textSecondary} />
+              <Text style={[styles.metadataText, { color: colors.textSecondary }]}>
+                {item.readTime ? `${item.readTime} min` : `${item.duration} min`}
+              </Text>
+            </View>
+
+            <View style={styles.metadataItem}>
+              <Star size={14} color={theme.colors.feedback.warning.bg} fill={theme.colors.feedback.warning.bg} />
+              <Text style={[styles.metadataText, { color: colors.textSecondary }]}>
+                {item.rating.toFixed(1)}
+              </Text>
+            </View>
+
+            <View style={styles.metadataItem}>
+              <View
+                style={[
+                  styles.difficultyBadge,
+                  { backgroundColor: getDifficultyColor(item.difficulty) + '20' },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.difficultyText,
+                    { color: getDifficultyColor(item.difficulty) },
+                  ]}
+                >
+                  {item.difficulty}
+                </Text>
+              </View>
+            </View>
+          </View>
+        </Card>
       </View>
-      </Card>
-    </View>
-  );
+    );
+  };
 
   return (
     <View testID="screen-patient-health-library" style={{ flex: 1, backgroundColor: colors.background }}>
@@ -423,12 +427,9 @@ export default function HealthLibraryScreen() {
               icon={<BookOpen size={48} color={colors.textSecondary} />}
               title="No content found"
               description="Try adjusting your filters or search terms"
+              actionLabel="Reset Filters"
+              onAction={resetFilters}
             />
-            <View style={styles.resetButton}>
-              <Button onPress={resetFilters} variant="primary" size="md">
-                Reset Filters
-              </Button>
-            </View>
           </View>
         ) : (
           <FlatList
@@ -464,7 +465,7 @@ export default function HealthLibraryScreen() {
               </Text>
 
               <View style={styles.articleMeta}>
-                <Badge variant={getTypeColor(selectedContent.contentType) as any} size="sm">
+                <Badge variant={getTypeVariant(selectedContent.contentType)} size="sm">
                   {selectedContent.contentType.toUpperCase()}
                 </Badge>
                 <View
@@ -558,24 +559,20 @@ export default function HealthLibraryScreen() {
               )}
 
               <View style={styles.modalActions}>
-                <View style={styles.actionButton}>
-                  <Button
-                    onPress={() => toggleBookmark(selectedContent.id)}
-                    variant={selectedContent.isBookmarked ? 'primary' : 'secondary'}
-                    size="md"
-                  >
-                    {selectedContent.isBookmarked ? 'Bookmarked' : 'Bookmark'}
-                  </Button>
-                </View>
-                <View style={styles.actionButton}>
-                  <Button
-                    onPress={() => setSelectedContent(null)}
-                    variant="secondary"
-                    size="md"
-                  >
-                    Close
-                  </Button>
-                </View>
+                <Button
+                  onPress={() => toggleBookmark(selectedContent.id)}
+                  variant={selectedContent.isBookmarked ? 'primary' : 'secondary'}
+                  size="md"
+                >
+                  {selectedContent.isBookmarked ? 'Bookmarked' : 'Bookmark'}
+                </Button>
+                <Button
+                  onPress={() => setSelectedContent(null)}
+                  variant="secondary"
+                  size="md"
+                >
+                  Close
+                </Button>
               </View>
             </ScrollView>
           )}
@@ -629,7 +626,6 @@ const styles = StyleSheet.create({
   },
   card: {
     marginBottom: 16,
-    padding: 16,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -677,15 +673,9 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textTransform: 'capitalize',
   },
-  cardButton: {
-    marginTop: 4,
-  },
   emptyStateContainer: {
     padding: 32,
     alignItems: 'center',
-  },
-  resetButton: {
-    marginTop: 16,
   },
   modalContainer: {
     flex: 1,
@@ -754,9 +744,6 @@ const styles = StyleSheet.create({
   modalActions: {
     gap: 12,
     paddingBottom: 24,
-  },
-  actionButton: {
-    width: '100%',
   },
   videoContainer: {
     marginBottom: 24,
