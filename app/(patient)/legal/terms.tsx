@@ -21,10 +21,10 @@ export default function TermsScreen() {
       <SafeAreaView style={{ flex: 1 }}>
         <ScrollView
           style={styles.scrollView}
-          contentContainerStyle={{ padding: theme.spacing[4] }}
+          contentContainerStyle={{ padding: theme.spacing[4], paddingBottom: theme.spacing[6] }}
         >
           <Card>
-            <View style={{ gap: theme.spacing[4] }}>
+            <View style={{ gap: theme.spacing[5] }}>
               <View style={styles.header}>
                 <View style={styles.titleRow}>
                   <FileText size={28} color={theme.colors.primary.bg} />
@@ -193,16 +193,16 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   section: {
-    gap: 12,
+    gap: 16,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    marginTop: 4,
+    marginTop: 8,
   },
   paragraph: {
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 15,
+    lineHeight: 23,
   },
   contactInfo: {
     fontSize: 14,

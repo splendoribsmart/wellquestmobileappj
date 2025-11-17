@@ -21,10 +21,10 @@ export default function HipaaScreen() {
       <SafeAreaView style={{ flex: 1 }}>
         <ScrollView
           style={styles.scrollView}
-          contentContainerStyle={{ padding: theme.spacing[4], gap: theme.spacing[4] }}
+          contentContainerStyle={{ padding: theme.spacing[4], paddingBottom: theme.spacing[6], gap: theme.spacing[4] }}
         >
           <Card>
-            <View style={{ gap: theme.spacing[4] }}>
+            <View style={{ gap: theme.spacing[5] }}>
               <View style={styles.header}>
                 <View style={styles.titleRow}>
                   <Lock size={28} color={theme.colors.primary.bg} />
@@ -298,15 +298,15 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   subsection: {
-    gap: 8,
+    gap: 12,
   },
   subsectionTitle: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '600',
   },
   paragraph: {
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 15,
+    lineHeight: 23,
   },
   contactSection: {
     gap: 12,

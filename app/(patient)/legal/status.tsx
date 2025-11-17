@@ -120,7 +120,7 @@ export default function StatusScreen() {
       <SafeAreaView style={{ flex: 1 }}>
         <ScrollView
           style={styles.scrollView}
-          contentContainerStyle={{ padding: theme.spacing[4], gap: theme.spacing[4] }}
+          contentContainerStyle={{ padding: theme.spacing[4], paddingBottom: theme.spacing[6], gap: theme.spacing[4] }}
         >
           <Card>
             <View style={{ gap: theme.spacing[3] }}>
@@ -314,8 +314,8 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   description: {
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 15,
+    lineHeight: 22,
   },
   overallStatusRow: {
     flexDirection: 'row',
@@ -375,12 +375,12 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   infoDescription: {
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: 14,
+    lineHeight: 20,
   },
   footerText: {
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: 14,
+    lineHeight: 20,
     fontStyle: 'italic',
   },
 });
