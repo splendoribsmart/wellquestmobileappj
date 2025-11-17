@@ -31,7 +31,6 @@ import {
   Eye,
   RefreshCw,
   Calendar,
-  Filter,
 } from 'lucide-react-native';
 import { Picker } from '@react-native-picker/picker';
 
@@ -149,7 +148,6 @@ export default function ReportsScreen() {
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<'all' | ReportType>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | ReportStatus>('all');
-  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
   const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
 
@@ -193,10 +191,6 @@ export default function ReportsScreen() {
     setSearchTerm('');
     setTypeFilter('all');
     setStatusFilter('all');
-  };
-
-  const applyFilters = () => {
-    setIsFilterModalOpen(false);
   };
 
   const hasActiveFilters = searchTerm !== '' || typeFilter !== 'all' || statusFilter !== 'all';
@@ -513,53 +507,96 @@ export default function ReportsScreen() {
           </ScrollView>
         </View>
 
-        <View style={{ paddingHorizontal: theme.spacing[4], marginBottom: theme.spacing[5], gap: theme.spacing[3] }}>
-          <View style={{ flexDirection: 'row', gap: theme.spacing[3] }}>
-            <View style={{ flex: 1 }}>
-              <Input
-                value={searchTerm}
-                onChangeText={setSearchTerm}
-                placeholder="Search reports..."
-                leftIcon={<Search size={18} color={theme.colors.text.muted} />}
-              />
-            </View>
-            <TouchableOpacity
-              onPress={() => setIsFilterModalOpen(true)}
-              style={{
-                paddingHorizontal: theme.spacing[4],
-                paddingVertical: theme.spacing[3],
-                backgroundColor: hasActiveFilters ? theme.colors.primary.bg : theme.colors.surface.bg,
-                borderRadius: theme.borderRadius.md,
-                borderWidth: theme.borderWidth.thin,
-                borderColor: hasActiveFilters ? theme.colors.primary.bg : theme.colors.surface.border,
-                justifyContent: 'center',
-                alignItems: 'center',
-                minWidth: 56,
-              }}
-            >
-              <Filter size={20} color={hasActiveFilters ? theme.colors.primary.fg : theme.colors.text.primary} />
-            </TouchableOpacity>
-          </View>
-          {hasActiveFilters && (
-            <View style={{ flexDirection: 'row', gap: theme.spacing[2], flexWrap: 'wrap' }}>
-              {typeFilter !== 'all' && (
-                <Badge variant="info" size="sm">
-                  {REPORT_TYPE_LABELS[typeFilter]}
-                </Badge>
-              )}
-              {statusFilter !== 'all' && (
-                <Badge variant="info" size="sm">
-                  {statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1)}
-                </Badge>
-              )}
-            </View>
-          )}
+        <View style={{ paddingHorizontal: theme.spacing[4], marginBottom: theme.spacing[5] }}>
           <Button
             onPress={() => setIsGenerateModalOpen(true)}
             variant="primary"
             size="md"
             title="Generate New Report"
           />
+        </View>
+
+        <View style={{ paddingHorizontal: theme.spacing[4], marginBottom: theme.spacing[5] }}>
+          <Card variant="bordered">
+            <View style={{ gap: theme.spacing[4] }}>
+              <Input
+                value={searchTerm}
+                onChangeText={setSearchTerm}
+                placeholder="Search reports by name or creator..."
+                leftIcon={<Search size={18} color={theme.colors.text.muted} />}
+              />
+
+              <View style={{ gap: theme.spacing[3] }}>
+                <Text
+                  style={{
+                    fontSize: theme.typography.fontSize.sm,
+                    fontFamily: theme.typography.fontFamily.semibold,
+                    color: theme.colors.text.primary,
+                  }}
+                >
+                  Report Type
+                </Text>
+                <View
+                  style={{
+                    borderWidth: theme.borderWidth.thin,
+                    borderColor: theme.colors.surface.border,
+                    borderRadius: theme.borderRadius.md,
+                    overflow: 'hidden',
+                  }}
+                >
+                  <Picker
+                    selectedValue={typeFilter}
+                    onValueChange={(value) => setTypeFilter(value as 'all' | ReportType)}
+                    style={{ height: 50 }}
+                  >
+                    <Picker.Item label="All Types" value="all" />
+                    <Picker.Item label="Patient Summary" value="patient_summary" />
+                    <Picker.Item label="Care Plan Progress" value="care_plan_progress" />
+                    <Picker.Item label="Medication Adherence" value="medication_adherence" />
+                    <Picker.Item label="Outcome Analysis" value="outcome_analysis" />
+                    <Picker.Item label="Quality Metrics" value="quality_metrics" />
+                  </Picker>
+                </View>
+              </View>
+
+              <View style={{ gap: theme.spacing[3] }}>
+                <Text
+                  style={{
+                    fontSize: theme.typography.fontSize.sm,
+                    fontFamily: theme.typography.fontFamily.semibold,
+                    color: theme.colors.text.primary,
+                  }}
+                >
+                  Status
+                </Text>
+                <View
+                  style={{
+                    borderWidth: theme.borderWidth.thin,
+                    borderColor: theme.colors.surface.border,
+                    borderRadius: theme.borderRadius.md,
+                    overflow: 'hidden',
+                  }}
+                >
+                  <Picker
+                    selectedValue={statusFilter}
+                    onValueChange={(value) => setStatusFilter(value as 'all' | ReportStatus)}
+                    style={{ height: 50 }}
+                  >
+                    <Picker.Item label="All Statuses" value="all" />
+                    <Picker.Item label="Completed" value="completed" />
+                    <Picker.Item label="Generating" value="generating" />
+                    <Picker.Item label="Failed" value="failed" />
+                  </Picker>
+                </View>
+              </View>
+
+              {hasActiveFilters && (
+                <View style={{ alignItems: 'flex-end', marginTop: theme.spacing[2] }}>
+                  <Button onPress={clearFilters} variant="ghost" size="sm" title="Clear Filters" />
+                </View>
+              )}
+            </View>
+          </Card>
         </View>
 
         <View style={{ paddingHorizontal: theme.spacing[4], paddingBottom: theme.spacing[6] }}>
@@ -583,98 +620,6 @@ export default function ReportsScreen() {
           )}
         </View>
       </ScrollView>
-
-      <Modal
-        isOpen={isFilterModalOpen}
-        onClose={() => setIsFilterModalOpen(false)}
-        title="Filter Reports"
-        size="md"
-      >
-        <View style={{ gap: theme.spacing[5] }}>
-          <View style={{ gap: theme.spacing[3] }}>
-            <Text
-              style={{
-                fontSize: theme.typography.fontSize.sm,
-                fontFamily: theme.typography.fontFamily.semibold,
-                color: theme.colors.text.primary,
-              }}
-            >
-              Report Type
-            </Text>
-            <View
-              style={{
-                borderWidth: theme.borderWidth.thin,
-                borderColor: theme.colors.surface.border,
-                borderRadius: theme.borderRadius.md,
-                overflow: 'hidden',
-              }}
-            >
-              <Picker
-                selectedValue={typeFilter}
-                onValueChange={(value) => setTypeFilter(value as 'all' | ReportType)}
-                style={{ height: 50 }}
-              >
-                <Picker.Item label="All Types" value="all" />
-                <Picker.Item label="Patient Summary" value="patient_summary" />
-                <Picker.Item label="Care Plan Progress" value="care_plan_progress" />
-                <Picker.Item label="Medication Adherence" value="medication_adherence" />
-                <Picker.Item label="Outcome Analysis" value="outcome_analysis" />
-                <Picker.Item label="Quality Metrics" value="quality_metrics" />
-              </Picker>
-            </View>
-          </View>
-
-          <View style={{ gap: theme.spacing[3] }}>
-            <Text
-              style={{
-                fontSize: theme.typography.fontSize.sm,
-                fontFamily: theme.typography.fontFamily.semibold,
-                color: theme.colors.text.primary,
-              }}
-            >
-              Status
-            </Text>
-            <View
-              style={{
-                borderWidth: theme.borderWidth.thin,
-                borderColor: theme.colors.surface.border,
-                borderRadius: theme.borderRadius.md,
-                overflow: 'hidden',
-              }}
-            >
-              <Picker
-                selectedValue={statusFilter}
-                onValueChange={(value) => setStatusFilter(value as 'all' | ReportStatus)}
-                style={{ height: 50 }}
-              >
-                <Picker.Item label="All Statuses" value="all" />
-                <Picker.Item label="Completed" value="completed" />
-                <Picker.Item label="Generating" value="generating" />
-                <Picker.Item label="Failed" value="failed" />
-              </Picker>
-            </View>
-          </View>
-
-          <View style={{ flexDirection: 'row', gap: theme.spacing[3], marginTop: theme.spacing[2] }}>
-            <View style={{ flex: 1 }}>
-              <Button
-                onPress={clearFilters}
-                variant="outline"
-                size="md"
-                title="Clear All"
-              />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Button
-                onPress={applyFilters}
-                variant="primary"
-                size="md"
-                title="Apply Filters"
-              />
-            </View>
-          </View>
-        </View>
-      </Modal>
 
       <Modal
         isOpen={isGenerateModalOpen}
