@@ -8,11 +8,8 @@ import { useNavigation } from 'expo-router';
 import { Button, Card, Badge, Input, Avatar, EmptyState } from '@components/ui';
 import {
   Users,
-  FileText,
   Calendar,
   Search,
-  TrendingUp,
-  TrendingDown,
   AlertCircle,
   Bell,
   ClipboardList,
@@ -24,8 +21,6 @@ interface ClinicianStat {
   id: string;
   label: string;
   value: string;
-  change: string;
-  changeType: 'increase' | 'decrease' | 'neutral';
 }
 
 interface RecentPatient {
@@ -51,29 +46,16 @@ const STATS: ClinicianStat[] = [
     id: '1',
     label: 'Total Patients',
     value: '42',
-    change: '+2',
-    changeType: 'increase',
   },
   {
     id: '2',
     label: 'Active Care Plans',
     value: '28',
-    change: '+5',
-    changeType: 'increase',
   },
   {
     id: '3',
     label: 'Upcoming Appointments',
     value: '8',
-    change: '-2',
-    changeType: 'decrease',
-  },
-  {
-    id: '4',
-    label: 'Info Searches',
-    value: '156',
-    change: '+12',
-    changeType: 'increase',
   },
 ];
 
@@ -253,14 +235,6 @@ export default function ClinicianDashboardScreen() {
                   <View style={{ gap: theme.spacing[2] }}>
                     <Text
                       style={{
-                        fontSize: theme.typography.fontSize.sm,
-                        color: theme.colors.text.muted,
-                      }}
-                    >
-                      {stat.label}
-                    </Text>
-                    <Text
-                      style={{
                         fontSize: theme.typography.fontSize['3xl'],
                         fontFamily: theme.typography.fontFamily.bold,
                         color: theme.colors.text.primary,
@@ -268,45 +242,14 @@ export default function ClinicianDashboardScreen() {
                     >
                       {stat.value}
                     </Text>
-                    <View
+                    <Text
                       style={{
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        gap: theme.spacing[1],
+                        fontSize: theme.typography.fontSize.sm,
+                        color: theme.colors.text.muted,
                       }}
                     >
-                      {stat.changeType === 'increase' ? (
-                        <TrendingUp
-                          size={14}
-                          color={theme.colors.feedback.success.bg}
-                        />
-                      ) : stat.changeType === 'decrease' ? (
-                        <TrendingDown
-                          size={14}
-                          color={theme.colors.feedback.danger.bg}
-                        />
-                      ) : null}
-                      <Badge
-                        variant={
-                          stat.changeType === 'increase'
-                            ? 'success'
-                            : stat.changeType === 'decrease'
-                            ? 'danger'
-                            : 'neutral'
-                        }
-                        size="sm"
-                      >
-                        {stat.change}
-                      </Badge>
-                      <Text
-                        style={{
-                          fontSize: theme.typography.fontSize.xs,
-                          color: theme.colors.text.muted,
-                        }}
-                      >
-                        vs yesterday
-                      </Text>
-                    </View>
+                      {stat.label}
+                    </Text>
                   </View>
                 </Card>
               </View>
@@ -461,25 +404,15 @@ export default function ClinicianDashboardScreen() {
           <Card
             variant="bordered"
             header={
-              <View style={{ gap: theme.spacing[1] }}>
-                <Text
-                  style={{
-                    fontSize: theme.typography.fontSize.lg,
-                    fontFamily: theme.typography.fontFamily.semibold,
-                    color: theme.colors.text.primary,
-                  }}
-                >
-                  Information Summary
-                </Text>
-                <Text
-                  style={{
-                    fontSize: theme.typography.fontSize.sm,
-                    color: theme.colors.text.muted,
-                  }}
-                >
-                  Clinically relevant patterns and flags from recent data.
-                </Text>
-              </View>
+              <Text
+                style={{
+                  fontSize: theme.typography.fontSize.lg,
+                  fontFamily: theme.typography.fontFamily.semibold,
+                  color: theme.colors.text.primary,
+                }}
+              >
+                Recent Alerts
+              </Text>
             }
           >
             {CLINICAL_INSIGHTS.length === 0 ? (
