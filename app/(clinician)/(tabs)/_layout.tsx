@@ -5,6 +5,7 @@ import {
   LayoutDashboard,
   Users,
   AlertTriangle,
+  FileBarChart,
   MessageSquare,
 } from 'lucide-react-native';
 
@@ -57,6 +58,16 @@ export default function ClinicianTabsLayout() {
             <AlertTriangle size={size} color={color} />
           ),
           tabBarAccessibilityLabel: 'Alerts tab',
+        }}
+      />
+      <Tabs.Screen
+        name="reports"
+        options={{
+          title: 'Reports',
+          tabBarIcon: ({ color, size }) => (
+            <FileBarChart size={size} color={color} />
+          ),
+          tabBarAccessibilityLabel: 'Reports tab',
         }}
       />
       <Tabs.Screen

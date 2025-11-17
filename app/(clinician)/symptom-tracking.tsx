@@ -1,10 +1,10 @@
 import { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ScrollView } from 'react-native';
 import { useTheme } from '@theme/index';
 import { getThemeColors } from '@utils/themeHelpers';
 import { TopBar } from '@components/layout/TopBar';
 import { Card, Badge, Button, Input, EmptyState, Avatar } from '@components/ui';
-import { Search } from 'lucide-react-native';
+import { Search, ChevronRight } from 'lucide-react-native';
 
 type SymptomSeverityBucket = 'low' | 'medium' | 'high';
 
@@ -143,6 +143,24 @@ export default function SymptomTrackingScreen() {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [severityFilter, setSeverityFilter] = useState<'all' | SymptomSeverityBucket>('all');
+  const [patientFilter, setPatientFilter] = useState<'all' | string>('all');
+  const [symptomFilter, setSymptomFilter] = useState<'all' | string>('all');
+
+  const uniquePatients = useMemo(() => {
+    const patientMap = new Map<string, string>();
+    SYMPTOM_REPORTS.forEach((report) => {
+      patientMap.set(report.patientId, report.patientName);
+    });
+    return Array.from(patientMap.entries()).map(([id, name]) => ({ id, name }));
+  }, []);
+
+  const uniqueSymptoms = useMemo(() => {
+    const symptomSet = new Set<string>();
+    SYMPTOM_REPORTS.forEach((report) => {
+      report.symptoms.forEach((symptom) => symptomSet.add(symptom));
+    });
+    return Array.from(symptomSet).sort();
+  }, []);
 
   const filteredReports = useMemo(() => {
     return SYMPTOM_REPORTS.filter((report) => {
@@ -156,20 +174,33 @@ export default function SymptomTrackingScreen() {
       const matchesSeverity =
         severityFilter === 'all' || getSeverityBucket(report.severity) === severityFilter;
 
-      return matchesSearch && matchesSeverity;
+      const matchesPatient = patientFilter === 'all' || report.patientId === patientFilter;
+
+      const matchesSymptom =
+        symptomFilter === 'all' ||
+        report.symptoms.some((s) => s.toLowerCase() === symptomFilter.toLowerCase());
+
+      return matchesSearch && matchesSeverity && matchesPatient && matchesSymptom;
     });
-  }, [searchTerm, severityFilter]);
+  }, [searchTerm, severityFilter, patientFilter, symptomFilter]);
 
   const stats = useMemo(() => {
     const totalReports = filteredReports.length;
     const highSeverity = filteredReports.filter((r) => r.severity >= 7).length;
+    const avgSeverity =
+      totalReports > 0
+        ? (filteredReports.reduce((sum, r) => sum + r.severity, 0) / totalReports).toFixed(1)
+        : '0.0';
+    const uniquePatientCount = new Set(filteredReports.map((r) => r.patientId)).size;
 
-    return { totalReports, highSeverity };
+    return { totalReports, highSeverity, avgSeverity, uniquePatientCount };
   }, [filteredReports]);
 
   const clearFilters = () => {
     setSearchTerm('');
     setSeverityFilter('all');
+    setPatientFilter('all');
+    setSymptomFilter('all');
   };
 
   const renderHeader = () => (
@@ -185,24 +216,42 @@ export default function SymptomTrackingScreen() {
 
       <Card>
         <View style={{ gap: theme.spacing[3] }}>
-          <Text style={[styles.statsTitle, { color: colors.text }]}>Summary</Text>
+          <Text style={[styles.statsTitle, { color: colors.text }]}>Summary Statistics</Text>
 
-          <View style={{ flexDirection: 'row', gap: theme.spacing[3], flexWrap: 'wrap' }}>
-            <View style={{ flex: 1, minWidth: 100 }}>
+          <View style={{ gap: theme.spacing[2] }}>
+            <View style={styles.statRow}>
+              <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
+                Total Reports
+              </Text>
               <Text style={[styles.statValue, { color: colors.text }]}>
                 {stats.totalReports}
               </Text>
-              <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
-                Total
-              </Text>
             </View>
 
-            <View style={{ flex: 1, minWidth: 100 }}>
+            <View style={styles.statRow}>
+              <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
+                High Severity (7-10)
+              </Text>
               <Text style={[styles.statValue, { color: theme.colors.feedback.danger.fg }]}>
                 {stats.highSeverity}
               </Text>
+            </View>
+
+            <View style={styles.statRow}>
               <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
-                High Priority
+                Avg Severity
+              </Text>
+              <Text style={[styles.statValue, { color: colors.text }]}>
+                {stats.avgSeverity} / 10
+              </Text>
+            </View>
+
+            <View style={styles.statRow}>
+              <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
+                Unique Patients
+              </Text>
+              <Text style={[styles.statValue, { color: colors.text }]}>
+                {stats.uniquePatientCount}
               </Text>
             </View>
           </View>
@@ -219,33 +268,93 @@ export default function SymptomTrackingScreen() {
           />
 
           <View style={{ gap: theme.spacing[3] }}>
-            <Text style={[styles.filterLabel, { color: colors.text }]}>Filter by Severity</Text>
+            <Text style={[styles.filterLabel, { color: colors.text }]}>Severity</Text>
             <View style={styles.filterRow}>
               <Button
                 size="sm"
                 variant={severityFilter === 'all' ? 'primary' : 'outline'}
                 onPress={() => setSeverityFilter('all')}
-                title="All"
-              />
+              >
+                All
+              </Button>
               <Button
                 size="sm"
                 variant={severityFilter === 'low' ? 'primary' : 'outline'}
                 onPress={() => setSeverityFilter('low')}
-                title="Low"
-              />
+              >
+                Low
+              </Button>
               <Button
                 size="sm"
                 variant={severityFilter === 'medium' ? 'primary' : 'outline'}
                 onPress={() => setSeverityFilter('medium')}
-                title="Medium"
-              />
+              >
+                Medium
+              </Button>
               <Button
                 size="sm"
                 variant={severityFilter === 'high' ? 'primary' : 'outline'}
                 onPress={() => setSeverityFilter('high')}
-                title="High"
-              />
+              >
+                High
+              </Button>
             </View>
+          </View>
+
+          <View style={{ gap: theme.spacing[3] }}>
+            <Text style={[styles.filterLabel, { color: colors.text }]}>Patient</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <View style={styles.filterRow}>
+                <Button
+                  size="sm"
+                  variant={patientFilter === 'all' ? 'primary' : 'outline'}
+                  onPress={() => setPatientFilter('all')}
+                >
+                  All
+                </Button>
+                {uniquePatients.map((patient) => (
+                  <Button
+                    key={patient.id}
+                    size="sm"
+                    variant={patientFilter === patient.id ? 'primary' : 'outline'}
+                    onPress={() => setPatientFilter(patient.id)}
+                  >
+                    {patient.name}
+                  </Button>
+                ))}
+              </View>
+            </ScrollView>
+          </View>
+
+          <View style={{ gap: theme.spacing[3] }}>
+            <Text style={[styles.filterLabel, { color: colors.text }]}>Symptom</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <View style={styles.filterRow}>
+                <Button
+                  size="sm"
+                  variant={symptomFilter === 'all' ? 'primary' : 'outline'}
+                  onPress={() => setSymptomFilter('all')}
+                >
+                  All
+                </Button>
+                {uniqueSymptoms.map((symptom) => (
+                  <Button
+                    key={symptom}
+                    size="sm"
+                    variant={symptomFilter === symptom ? 'primary' : 'outline'}
+                    onPress={() => setSymptomFilter(symptom)}
+                  >
+                    {symptom}
+                  </Button>
+                ))}
+              </View>
+            </ScrollView>
+          </View>
+
+          <View style={styles.clearFiltersRow}>
+            <Button size="sm" variant="ghost" onPress={clearFilters}>
+              Clear Filters
+            </Button>
           </View>
         </View>
       </Card>
@@ -310,12 +419,22 @@ export default function SymptomTrackingScreen() {
             <Text style={[styles.timestamp, { color: colors.textSecondary }]}>
               Reported: {formatDate(item.reportedAt)}
             </Text>
-            <Button
-              size="sm"
-              variant="outline"
-              onPress={() => console.log('view patient', item.patientId)}
-              title="View Patient"
-            />
+            <View style={{ flexDirection: 'row', gap: theme.spacing[2] }}>
+              <Button
+                size="sm"
+                variant="outline"
+                onPress={() => console.log('view patient', item.patientId)}
+              >
+                View Patient
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onPress={() => console.log('message patient', item.patientId)}
+              >
+                Message
+              </Button>
+            </View>
           </View>
         </View>
         </Card>
@@ -374,12 +493,16 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
   },
+  statRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   statLabel: {
-    fontSize: 13,
-    marginTop: 4,
+    fontSize: 14,
   },
   statValue: {
-    fontSize: 28,
+    fontSize: 16,
     fontWeight: '700',
   },
   filterLabel: {
@@ -389,7 +512,10 @@ const styles = StyleSheet.create({
   filterRow: {
     flexDirection: 'row',
     gap: 8,
-    flexWrap: 'wrap',
+  },
+  clearFiltersRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
   },
   listTitle: {
     fontSize: 18,

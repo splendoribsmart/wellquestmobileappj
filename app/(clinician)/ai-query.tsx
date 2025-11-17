@@ -15,6 +15,7 @@ import {
 } from '@components/ui';
 import {
   Brain,
+  Bookmark,
   Copy,
   Clock,
   AlertTriangle,
@@ -123,6 +124,9 @@ export default function AiQueryScreen() {
     setQuery(recentQuery);
   };
 
+  const handleBookmark = () => {
+    console.log('Bookmark response');
+  };
 
   const handleCopy = () => {
     console.log('Copy response to clipboard');
@@ -273,12 +277,25 @@ export default function AiQueryScreen() {
                       Search Results
                     </Text>
                   </View>
-                  <TouchableOpacity
-                    onPress={handleCopy}
-                    style={styles.actionButton}
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      gap: theme.spacing[2],
+                    }}
                   >
-                    <Copy size={20} color={theme.colors.text.muted} />
-                  </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={handleBookmark}
+                      style={styles.actionButton}
+                    >
+                      <Bookmark size={20} color={theme.colors.text.muted} />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={handleCopy}
+                      style={styles.actionButton}
+                    >
+                      <Copy size={20} color={theme.colors.text.muted} />
+                    </TouchableOpacity>
+                  </View>
                 </View>
 
                 <View style={{ gap: theme.spacing[2] }}>
