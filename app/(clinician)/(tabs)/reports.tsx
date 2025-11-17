@@ -19,7 +19,9 @@ import {
   Badge,
   EmptyState,
   Modal,
+  FilterChip,
 } from '@components/ui';
+import { Picker } from '@react-native-picker/picker';
 import {
   Search,
   FileText,
@@ -31,8 +33,13 @@ import {
   Eye,
   RefreshCw,
   Calendar,
+  Heart,
+  Pill,
+  TrendingUp,
+  CheckCircle2,
+  Clock,
+  XCircle,
 } from 'lucide-react-native';
-import { Picker } from '@react-native-picker/picker';
 
 type ReportType =
   | 'patient_summary'
@@ -148,6 +155,7 @@ export default function ReportsScreen() {
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<'all' | ReportType>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | ReportStatus>('all');
+  const [showFilters, setShowFilters] = useState(true);
   const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
 
@@ -186,6 +194,56 @@ export default function ReportsScreen() {
       failed: filteredReports.filter((r) => r.status === 'failed').length,
     };
   }, [filteredReports]);
+
+  const typeCounts = useMemo(() => {
+    return {
+      all: reports.length,
+      patient_summary: reports.filter((r) => r.type === 'patient_summary').length,
+      care_plan_progress: reports.filter((r) => r.type === 'care_plan_progress').length,
+      medication_adherence: reports.filter((r) => r.type === 'medication_adherence').length,
+      outcome_analysis: reports.filter((r) => r.type === 'outcome_analysis').length,
+      quality_metrics: reports.filter((r) => r.type === 'quality_metrics').length,
+    };
+  }, [reports]);
+
+  const statusCounts = useMemo(() => {
+    return {
+      all: reports.length,
+      completed: reports.filter((r) => r.status === 'completed').length,
+      generating: reports.filter((r) => r.status === 'generating').length,
+      failed: reports.filter((r) => r.status === 'failed').length,
+    };
+  }, [reports]);
+
+  const getReportTypeIcon = (type: ReportType | 'all') => {
+    switch (type) {
+      case 'patient_summary':
+        return Heart;
+      case 'care_plan_progress':
+        return TrendingUp;
+      case 'medication_adherence':
+        return Pill;
+      case 'outcome_analysis':
+        return BarChart3;
+      case 'quality_metrics':
+        return Activity;
+      default:
+        return FileText;
+    }
+  };
+
+  const getStatusIcon = (status: ReportStatus | 'all') => {
+    switch (status) {
+      case 'completed':
+        return CheckCircle2;
+      case 'generating':
+        return Clock;
+      case 'failed':
+        return XCircle;
+      default:
+        return FileText;
+    }
+  };
 
   const clearFilters = () => {
     setSearchTerm('');
@@ -517,98 +575,236 @@ export default function ReportsScreen() {
         </View>
 
         <View style={{ paddingHorizontal: theme.spacing[4], marginBottom: theme.spacing[5] }}>
-          <Card variant="bordered">
-            <View style={{ gap: theme.spacing[4] }}>
-              <Input
-                value={searchTerm}
-                onChangeText={setSearchTerm}
-                placeholder="Search reports by name or creator..."
-                leftIcon={<Search size={18} color={theme.colors.text.muted} />}
-              />
+          <View style={{ gap: theme.spacing[4] }}>
+            <Input
+              value={searchTerm}
+              onChangeText={setSearchTerm}
+              placeholder="Search reports by name or creator..."
+              leftIcon={<Search size={18} color={theme.colors.text.muted} />}
+            />
 
-              <View style={{ gap: theme.spacing[3] }}>
-                <Text
-                  style={{
-                    fontSize: theme.typography.fontSize.sm,
-                    fontFamily: theme.typography.fontFamily.semibold,
-                    color: theme.colors.text.primary,
-                  }}
-                >
-                  Report Type
-                </Text>
-                <View
-                  style={{
-                    borderWidth: theme.borderWidth.thin,
-                    borderColor: theme.colors.surface.border,
-                    borderRadius: theme.borderRadius.md,
-                    overflow: 'hidden',
-                  }}
-                >
-                  <Picker
-                    selectedValue={typeFilter}
-                    onValueChange={(value) => setTypeFilter(value as 'all' | ReportType)}
-                    style={{ height: 50 }}
+            <TouchableOpacity
+              onPress={() => setShowFilters(!showFilters)}
+              activeOpacity={0.7}
+              style={{ alignSelf: 'flex-start' }}
+            >
+              <Text
+                style={{
+                  fontSize: theme.typography.fontSize.sm,
+                  fontFamily: theme.typography.fontFamily.semibold,
+                  color: theme.colors.primary.bg,
+                }}
+              >
+                {showFilters ? 'Hide Filters' : 'Show Filters'}
+              </Text>
+            </TouchableOpacity>
+
+            {showFilters && (
+              <View style={{ gap: theme.spacing[4] }}>
+                <View style={{ gap: theme.spacing[2] }}>
+                  <Text
+                    style={{
+                      fontSize: theme.typography.fontSize.sm,
+                      fontFamily: theme.typography.fontFamily.semibold,
+                      color: theme.colors.text.primary,
+                    }}
                   >
-                    <Picker.Item label="All Types" value="all" />
-                    <Picker.Item label="Patient Summary" value="patient_summary" />
-                    <Picker.Item label="Care Plan Progress" value="care_plan_progress" />
-                    <Picker.Item label="Medication Adherence" value="medication_adherence" />
-                    <Picker.Item label="Outcome Analysis" value="outcome_analysis" />
-                    <Picker.Item label="Quality Metrics" value="quality_metrics" />
-                  </Picker>
+                    Report Type
+                  </Text>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={{
+                      gap: theme.spacing[2],
+                      paddingVertical: theme.spacing[1],
+                    }}
+                  >
+                    <FilterChip
+                      label="All Types"
+                      isSelected={typeFilter === 'all'}
+                      onPress={() => setTypeFilter('all')}
+                      icon={
+                        <FileText
+                          size={14}
+                          color={typeFilter === 'all' ? '#FFFFFF' : theme.colors.primary.bg}
+                        />
+                      }
+                      count={typeCounts.all}
+                    />
+                    <FilterChip
+                      label="Patient Summary"
+                      isSelected={typeFilter === 'patient_summary'}
+                      onPress={() => setTypeFilter('patient_summary')}
+                      icon={
+                        <Heart
+                          size={14}
+                          color={typeFilter === 'patient_summary' ? '#FFFFFF' : theme.colors.secondary.bg}
+                        />
+                      }
+                      count={typeCounts.patient_summary}
+                    />
+                    <FilterChip
+                      label="Care Plan"
+                      isSelected={typeFilter === 'care_plan_progress'}
+                      onPress={() => setTypeFilter('care_plan_progress')}
+                      icon={
+                        <TrendingUp
+                          size={14}
+                          color={typeFilter === 'care_plan_progress' ? '#FFFFFF' : theme.colors.feedback.success.bg}
+                        />
+                      }
+                      count={typeCounts.care_plan_progress}
+                    />
+                    <FilterChip
+                      label="Medication"
+                      isSelected={typeFilter === 'medication_adherence'}
+                      onPress={() => setTypeFilter('medication_adherence')}
+                      icon={
+                        <Pill
+                          size={14}
+                          color={typeFilter === 'medication_adherence' ? '#FFFFFF' : theme.colors.feedback.warning.bg}
+                        />
+                      }
+                      count={typeCounts.medication_adherence}
+                    />
+                    <FilterChip
+                      label="Outcomes"
+                      isSelected={typeFilter === 'outcome_analysis'}
+                      onPress={() => setTypeFilter('outcome_analysis')}
+                      icon={
+                        <BarChart3
+                          size={14}
+                          color={typeFilter === 'outcome_analysis' ? '#FFFFFF' : theme.colors.primary.bg}
+                        />
+                      }
+                      count={typeCounts.outcome_analysis}
+                    />
+                    <FilterChip
+                      label="Quality Metrics"
+                      isSelected={typeFilter === 'quality_metrics'}
+                      onPress={() => setTypeFilter('quality_metrics')}
+                      icon={
+                        <Activity
+                          size={14}
+                          color={typeFilter === 'quality_metrics' ? '#FFFFFF' : theme.colors.secondary.bg}
+                        />
+                      }
+                      count={typeCounts.quality_metrics}
+                    />
+                  </ScrollView>
+                </View>
+
+                <View style={{ gap: theme.spacing[2] }}>
+                  <Text
+                    style={{
+                      fontSize: theme.typography.fontSize.sm,
+                      fontFamily: theme.typography.fontFamily.semibold,
+                      color: theme.colors.text.primary,
+                    }}
+                  >
+                    Status
+                  </Text>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={{
+                      gap: theme.spacing[2],
+                      paddingVertical: theme.spacing[1],
+                    }}
+                  >
+                    <FilterChip
+                      label="All Statuses"
+                      isSelected={statusFilter === 'all'}
+                      onPress={() => setStatusFilter('all')}
+                      icon={
+                        <FileText
+                          size={14}
+                          color={statusFilter === 'all' ? '#FFFFFF' : theme.colors.text.primary}
+                        />
+                      }
+                      count={statusCounts.all}
+                    />
+                    <FilterChip
+                      label="Completed"
+                      isSelected={statusFilter === 'completed'}
+                      onPress={() => setStatusFilter('completed')}
+                      icon={
+                        <CheckCircle2
+                          size={14}
+                          color={statusFilter === 'completed' ? '#FFFFFF' : theme.colors.feedback.success.bg}
+                        />
+                      }
+                      count={statusCounts.completed}
+                    />
+                    <FilterChip
+                      label="Generating"
+                      isSelected={statusFilter === 'generating'}
+                      onPress={() => setStatusFilter('generating')}
+                      icon={
+                        <Clock
+                          size={14}
+                          color={statusFilter === 'generating' ? '#FFFFFF' : theme.colors.feedback.warning.bg}
+                        />
+                      }
+                      count={statusCounts.generating}
+                    />
+                    <FilterChip
+                      label="Failed"
+                      isSelected={statusFilter === 'failed'}
+                      onPress={() => setStatusFilter('failed')}
+                      icon={
+                        <XCircle
+                          size={14}
+                          color={statusFilter === 'failed' ? '#FFFFFF' : theme.colors.feedback.danger.bg}
+                        />
+                      }
+                      count={statusCounts.failed}
+                    />
+                  </ScrollView>
                 </View>
               </View>
+            )}
 
-              <View style={{ gap: theme.spacing[3] }}>
-                <Text
-                  style={{
-                    fontSize: theme.typography.fontSize.sm,
-                    fontFamily: theme.typography.fontFamily.semibold,
-                    color: theme.colors.text.primary,
-                  }}
-                >
-                  Status
-                </Text>
-                <View
-                  style={{
-                    borderWidth: theme.borderWidth.thin,
-                    borderColor: theme.colors.surface.border,
-                    borderRadius: theme.borderRadius.md,
-                    overflow: 'hidden',
-                  }}
-                >
-                  <Picker
-                    selectedValue={statusFilter}
-                    onValueChange={(value) => setStatusFilter(value as 'all' | ReportStatus)}
-                    style={{ height: 50 }}
-                  >
-                    <Picker.Item label="All Statuses" value="all" />
-                    <Picker.Item label="Completed" value="completed" />
-                    <Picker.Item label="Generating" value="generating" />
-                    <Picker.Item label="Failed" value="failed" />
-                  </Picker>
-                </View>
-              </View>
-
+            <View
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: theme.typography.fontSize.sm,
+                  color: theme.colors.text.muted,
+                }}
+              >
+                {filteredReports.length} report{filteredReports.length !== 1 ? 's' : ''} found
+              </Text>
               {hasActiveFilters && (
-                <View style={{ alignItems: 'flex-end', marginTop: theme.spacing[2] }}>
-                  <Button onPress={clearFilters} variant="ghost" size="sm" title="Clear Filters" />
-                </View>
+                <TouchableOpacity onPress={clearFilters} activeOpacity={0.7}>
+                  <Text
+                    style={{
+                      fontSize: theme.typography.fontSize.sm,
+                      fontFamily: theme.typography.fontFamily.semibold,
+                      color: theme.colors.primary.bg,
+                    }}
+                  >
+                    Clear Filters
+                  </Text>
+                </TouchableOpacity>
               )}
             </View>
-          </Card>
+          </View>
         </View>
 
         <View style={{ paddingHorizontal: theme.spacing[4], paddingBottom: theme.spacing[6] }}>
           {filteredReports.length === 0 ? (
-            <Card variant="bordered">
-              <EmptyState
-                title="No reports found"
-                description="Try adjusting your search or filters."
-                actionLabel="Clear Filters"
-                onAction={clearFilters}
-              />
-            </Card>
+            <EmptyState
+              title="No reports found"
+              description="Try adjusting your search or filters."
+              actionLabel="Clear Filters"
+              onAction={clearFilters}
+            />
           ) : (
             <FlatList
               testID="reports-list"
