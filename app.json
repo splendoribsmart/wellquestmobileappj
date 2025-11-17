@@ -8,13 +8,35 @@
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/images/erasebg-transformed (7).png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "splash": {
+        "image": "./assets/images/erasebg-transformed (7).png",
+        "resizeMode": "contain",
+        "backgroundColor": "#ffffff"
+      }
+    },
+    "android": {
+      "splash": {
+        "image": "./assets/images/erasebg-transformed (7).png",
+        "resizeMode": "contain",
+        "backgroundColor": "#ffffff"
+      }
     },
     "web": {
       "bundler": "metro",
       "output": "single",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/favicon.png",
+      "splash": {
+        "image": "./assets/images/erasebg-transformed (7).png",
+        "resizeMode": "contain",
+        "backgroundColor": "#ffffff"
+      }
     },
     "plugins": ["expo-router", "expo-font", "expo-web-browser"],
     "experiments": {

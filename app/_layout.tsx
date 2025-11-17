@@ -1,9 +1,12 @@
-import { useEffect } from 'react';
+import { useEffect, useCallback } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import * as SplashScreen from 'expo-splash-screen';
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 import { ThemeProvider } from '@theme/index';
 import { AppProvider, useAppState } from '@state/AppProvider';
+
+SplashScreen.preventAutoHideAsync();
 
 function RootLayoutNav() {
   const { role } = useAppState();
@@ -38,6 +41,14 @@ function RootLayoutNav() {
 
 export default function RootLayout() {
   useFrameworkReady();
+
+  const onLayoutReady = useCallback(async () => {
+    await SplashScreen.hideAsync();
+  }, []);
+
+  useEffect(() => {
+    onLayoutReady();
+  }, [onLayoutReady]);
 
   return (
     <ThemeProvider>
