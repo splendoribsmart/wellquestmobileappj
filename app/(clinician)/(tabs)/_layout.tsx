@@ -60,7 +60,7 @@ export default function ClinicianTabsLayout() {
           tabBarAccessibilityLabel: 'Alerts tab',
         }}
       />
-      <Tabs.Screen
+      {/*<Tabs.Screen
         name="reports"
         options={{
           title: 'Reports',
@@ -69,7 +69,7 @@ export default function ClinicianTabsLayout() {
           ),
           tabBarAccessibilityLabel: 'Reports tab',
         }}
-      />
+      />*/}
       <Tabs.Screen
         name="assistant"
         options={{
