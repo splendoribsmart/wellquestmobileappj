@@ -569,54 +569,6 @@ export default function ClinicianDashboardScreen() {
               </View>
             )}
           </Card>
-
-          <Card
-            variant="bordered"
-            header={
-              <Text
-                style={{
-                  fontSize: theme.typography.fontSize.lg,
-                  fontFamily: theme.typography.fontFamily.semibold,
-                  color: theme.colors.text.primary,
-                }}
-              >
-                Quick Actions
-              </Text>
-            }
-          >
-            <View style={{ gap: theme.spacing[3] }}>
-              <Button
-                onPress={() => console.log('View Patients')}
-                variant="outline"
-                title="View Patients"
-                leftIcon={
-                  <Users size={18} color={theme.colors.text.primary} />
-                }
-              />
-              <Button
-                onPress={() => console.log('Go to Alerts')}
-                variant="outline"
-                title="Go to Alerts"
-                leftIcon={<Bell size={18} color={theme.colors.text.primary} />}
-              />
-              <Button
-                onPress={() => console.log('Open Information Search')}
-                variant="outline"
-                title="Open Information Search"
-                leftIcon={
-                  <Search size={18} color={theme.colors.text.primary} />
-                }
-              />
-              <Button
-                onPress={() => console.log('New Care Plan')}
-                variant="outline"
-                title="New Care Plan"
-                leftIcon={
-                  <ClipboardList size={18} color={theme.colors.text.primary} />
-                }
-              />
-            </View>
-          </Card>
         </View>
       </ScrollView>
     </View>

@@ -55,15 +55,6 @@ export default function ClinicianLayout() {
           }}
         />
         <Drawer.Screen
-          name="risk-calculators"
-          options={{
-            drawerLabel: 'Risk Calculators',
-            drawerIcon: ({ color, size }) => (
-              <Calculator size={size} color={color} />
-            ),
-          }}
-        />
-        <Drawer.Screen
           name="bookmarks"
           options={{
             drawerLabel: 'Bookmarks',
