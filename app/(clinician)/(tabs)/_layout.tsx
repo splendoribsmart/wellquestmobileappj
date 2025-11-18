@@ -60,16 +60,6 @@ export default function ClinicianTabsLayout() {
           tabBarAccessibilityLabel: 'Alerts tab',
         }}
       />
-      {/*<Tabs.Screen
-        name="reports"
-        options={{
-          title: 'Reports',
-          tabBarIcon: ({ color, size }) => (
-            <FileBarChart size={size} color={color} />
-          ),
-          tabBarAccessibilityLabel: 'Reports tab',
-        }}
-      />*/}
       <Tabs.Screen
         name="assistant"
         options={{
